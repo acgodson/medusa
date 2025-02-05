@@ -1,38 +1,73 @@
-// import { useState } from "react";
-// import { useMedusa } from "@/lib/medusa/context";
-// import { DataCollectionAgent } from "@/lib/medusa/agents/dataCollectionAgent";
+"use client";
 
-// export function DataCollectionTest() {
-//   const bridge = useMedusa();
-//   const [result, setResult] = useState<string>("");
+import { trpc } from "@/trpc/client";
+import { useState } from "react";
 
-//   const testDataCollection = async () => {
-//     try {
-//       const agent = new DataCollectionAgent(bridge);
-//       await agent.initialize();
-//       await agent.execute({
-//         deviceId: "test-device-1",
-//         data: {
-//           temperature: 25,
-//           humidity: 60,
-//           timestamp: Date.now(),
-//         },
-//       });
-//       setResult("Data collection successful");
-//     } catch (error) {
-//       setResult(`Error: ${error.message}`);
-//     }
-//   };
+export function DataCollectionTest() {
+  const [deviceId, setDeviceId] = useState("");
+  const [temperature, setTemperature] = useState("");
+  const [humidity, setHumidity] = useState("");
+  const [result, setResult] = useState<string>("");
 
-//   return (
-//     <div className="p-4">
-//       <button
-//         onClick={testDataCollection}
-//         className="bg-blue-500 text-white px-4 py-2 rounded"
-//       >
-//         Test Data Collection
-//       </button>
-//       <div className="mt-4">{result}</div>
-//     </div>
-//   );
-// }
+  const collectData = trpc.collectData.useMutation({
+    onSuccess: (data) => {
+      setResult(`Data collection successful. Wallet ID: ${data.walletId}`);
+    },
+    onError: (error) => {
+      setResult(`Error: ${error.message}`);
+    },
+  });
+
+  const handleSubmit = async () => {
+    if (!deviceId || !temperature || !humidity) {
+      setResult("Please fill in all fields");
+      return;
+    }
+
+    collectData.mutate({
+      deviceId,
+      data: {
+        temperature: parseFloat(temperature),
+        humidity: parseFloat(humidity),
+        timestamp: Date.now(),
+      },
+    });
+  };
+
+  return (
+    <div className="p-4 border rounded-lg">
+      <h2 className="text-xl font-semibold mb-4">Test Data Collection</h2>
+      <div className="space-y-4">
+        <input
+          type="text"
+          placeholder="Device ID"
+          className="w-full p-2 border rounded"
+          value={deviceId}
+          onChange={(e) => setDeviceId(e.target.value)}
+        />
+        <input
+          type="number"
+          placeholder="Temperature"
+          className="w-full p-2 border rounded"
+          value={temperature}
+          onChange={(e) => setTemperature(e.target.value)}
+        />
+        <input
+          type="number"
+          placeholder="Humidity"
+          className="w-full p-2 border rounded"
+          value={humidity}
+          onChange={(e) => setHumidity(e.target.value)}
+        />
+        <button
+          onClick={handleSubmit}
+          disabled={collectData.isPending}
+          className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-blue-300"
+        >
+          {collectData.isPending ? "Processing..." : "Test Data Collection"}
+        </button>
+        <div className="mt-4">{result}</div>
+      </div>
+    </div>
+  );
+}
