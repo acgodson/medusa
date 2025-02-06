@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMedusa } from "@/lib/medusa/context";
+// import { useMedusa } from "@/lib/medusa/context";
 
 export function WalletTest() {
   const [wallets, setWallets] = useState<any[]>([]);

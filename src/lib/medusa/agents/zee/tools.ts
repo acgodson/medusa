@@ -4,8 +4,8 @@ import { DataSchema } from "./types";
 import { PrivyClient } from "@privy-io/server-auth";
 
 export const WalletSchema = z.object({
-  operation: z.enum(["sign", "getAddress", "getWalletId"]),
-  message: z.string().optional(),
+  operation: z.enum(["getAddress", "getWalletId", "sign"]),
+  message: z.string(),
 });
 
 export interface PrivyWalletConfig {
@@ -15,7 +15,7 @@ export interface PrivyWalletConfig {
 }
 
 // tools.ts
-export const createPrivyWalletTool = (privy: PrivyClient, wallet?: any) =>
+export const createPrivyWalletTool = (privy: PrivyClient) =>
   createTool({
     id: "privy-wallet",
     description: "Manages wallet operations for agent identity and signatures",
@@ -23,7 +23,7 @@ export const createPrivyWalletTool = (privy: PrivyClient, wallet?: any) =>
     execute: async (params) => {
       try {
         // If wallet isn't provided, try to get or create one
-        const activeWallet = wallet || (await getOrCreateWallet(privy));
+        const activeWallet = await getOrCreateWallet(privy);
 
         switch (params.operation) {
           case "sign":

@@ -16,7 +16,7 @@ dependencies:
     version: 2.2.1(@solana/web3.js@1.98.0)(@types/react@19.0.8)(bs58@6.0.0)(react-dom@19.0.0)(react@19.0.0)(typescript@5.7.3)(zod@3.24.1)
   '@privy-io/server-auth':
     specifier: ^1.18.4
-    version: 1.18.4
+    version: 1.18.4(viem@2.22.21)
   '@tanstack/react-query':
     specifier: ^5.56.2
     version: 5.66.0(react@19.0.0)
@@ -44,6 +44,9 @@ dependencies:
   react-dom:
     specifier: ^19.0.0
     version: 19.0.0(react@19.0.0)
+  viem:
+    specifier: ^2.21.24
+    version: 2.22.21(typescript@5.7.3)(zod@3.24.1)
   zod:
     specifier: ^3.23.8
     version: 3.24.1
@@ -1243,7 +1246,7 @@ packages:
       - zod
     dev: false
 
-  /@privy-io/server-auth@1.18.4:
+  /@privy-io/server-auth@1.18.4(viem@2.22.21):
     resolution: {integrity: sha512-FLSQRbzHhxjbkHVCjD+8Iw3+f4U3bJKj97sue9nOmumrpmxJkHhCDusqDR7le7yKrsntHYcOSNAX34FpjkMjQg==}
     peerDependencies:
       viem: ^2
@@ -1262,6 +1265,7 @@ packages:
       svix: 1.45.1
       ts-case-convert: 2.1.0
       type-fest: 3.13.1
+      viem: 2.22.21(typescript@5.7.3)(zod@3.24.1)
     transitivePeerDependencies:
       - bufferutil
       - encoding

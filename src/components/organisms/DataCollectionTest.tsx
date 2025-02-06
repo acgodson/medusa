@@ -11,7 +11,10 @@ export function DataCollectionTest() {
 
   const collectData = trpc.collectData.useMutation({
     onSuccess: (data) => {
-      setResult(`Data collection successful. Wallet ID: ${data.walletId}`);
+      setResult(
+        ""
+        // `Data collection successful. Result: ${JSON.stringify(data.result)}`
+      );
     },
     onError: (error) => {
       setResult(`Error: ${error.message}`);
@@ -66,7 +69,7 @@ export function DataCollectionTest() {
         >
           {collectData.isPending ? "Processing..." : "Test Data Collection"}
         </button>
-        <div className="mt-4">{result}</div>
+        <pre className="mt-4 whitespace-pre-wrap">{result}</pre>
       </div>
     </div>
   );
