@@ -12,8 +12,7 @@ export function DataCollectionTest() {
   const collectData = trpc.collectData.useMutation({
     onSuccess: (data) => {
       setResult(
-        ""
-        // `Data collection successful. Result: ${JSON.stringify(data.result)}`
+        `Data collection successful. Result: ${JSON.stringify(data.result)}`
       );
     },
     onError: (error) => {

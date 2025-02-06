@@ -21,6 +21,8 @@ const DataCollectionInput = z.object({
   }),
 });
 
+const message = z.string();
+
 export const appRouter = createTRPCRouter({
   collectData: baseProcedure
     .input(DataCollectionInput)
@@ -37,17 +39,20 @@ export const appRouter = createTRPCRouter({
         });
 
         //  DataCollectionAgent
-        // const agent = await bridge.getZeeAgent("dataCollection");
+        const agent = await bridge.getZeeAgent("dataCollection");
 
         // Execute data collection operation
         const result = await bridge.executeOperation(
           "zee.dataCollection.process",
           {
-            data: input,
-            message: "",
+            deviceId: input.deviceId,
+            data: {
+              message: `Sensor data from device ${input.deviceId}`,
+              ...input.data,
+            },
+            message: `Sensor data from device ${input.deviceId}`,
           }
         );
-
         return {
           success: true,
           result,

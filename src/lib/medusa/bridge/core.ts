@@ -64,8 +64,7 @@ export class MedusaBridge {
         const zeeAgent = await this.getZeeAgent(agentType);
         // Add required message field
         return zeeAgent.execute({
-          ...params.data,
-          message: `Sensor data from device ${params.data.deviceId}`, // Default message
+          ...params,
         });
 
       case "cdp":

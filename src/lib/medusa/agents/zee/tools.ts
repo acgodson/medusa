@@ -18,22 +18,34 @@ export interface PrivyWalletConfig {
 export const createPrivyWalletTool = (privy: PrivyClient) =>
   createTool({
     id: "privy-wallet",
-    description: "Manages wallet operations for agent identity and signatures",
+    description:
+      "REQUIRED: Use this tool first to sign any sensor data before storage. Takes a message and returns a signature.",
     schema: WalletSchema,
     execute: async (params) => {
+      console.log("Privy tool executing with params:", params);
       try {
         // If wallet isn't provided, try to get or create one
         const activeWallet = await getOrCreateWallet(privy);
+        console.log("Active wallet:", activeWallet);
 
         switch (params.operation) {
           case "sign":
             if (!params.message)
               throw new Error("Message required for signing");
-            const { signature } = await privy.walletApi.ethereum.signMessage({
+
+            console.log("Signing message:", params.message);
+            const signResult = await privy.walletApi.ethereum.signMessage({
               walletId: activeWallet.id,
               message: params.message,
             });
-            return JSON.stringify({ signature, walletId: activeWallet.id });
+            console.log("Sign result:", signResult);
+
+            const response = JSON.stringify({
+              signature: signResult.signature,
+              walletId: activeWallet.id,
+            });
+            console.log("Returning response:", response);
+            return response;
 
           case "getAddress":
             return JSON.stringify({ address: activeWallet.address });
@@ -45,6 +57,7 @@ export const createPrivyWalletTool = (privy: PrivyClient) =>
             throw new Error("Unsupported wallet operation");
         }
       } catch (error: any) {
+        console.error("Privy tool error:", error);
         throw new Error(`Wallet operation failed: ${error.message}`);
       }
     },
