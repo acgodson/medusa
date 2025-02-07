@@ -5,6 +5,7 @@ import { MedusaBridge } from "@/lib/medusa/bridge/core";
 import { console } from "inspector";
 import { BroadcastingAgent } from "@/lib/medusa/agents/BroadcastingAgent";
 import { ResponseAgent } from "@/lib/medusa/agents/ResponseAgent";
+import RegistryArtifacts from "../../../contracts/artifacts/MedusaRegistry.json";
 
 const generateSlug = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",

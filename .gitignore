@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+contracts/artifacts/MedusaRegistry_metadata.json
+contracts/artifacts/build-info
+contracts/.states
+contracts/.deps

@@ -5,8 +5,7 @@ import lighthouse from "@lighthouse-web3/sdk";
 export const createIPNSTool = (lighthouseApiKey: string) =>
   createTool({
     id: "storage-tool",
-    description:
-      "Store and manage data on IPFS via Pinata and IPNS via Lighthouse",
+    description: "Store and manage data on IPFS and IPNS via Lighthouse",
     schema: z.object({
       operation: z.enum([
         "upload",
