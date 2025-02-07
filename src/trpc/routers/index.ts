@@ -4,6 +4,7 @@ import { customAlphabet } from "nanoid";
 import { MedusaBridge } from "@/lib/medusa/bridge/core";
 import { console } from "inspector";
 import { BroadcastingAgent } from "@/lib/medusa/agents/BroadcastingAgent";
+import { ResponseAgent } from "@/lib/medusa/agents/ResponseAgent";
 
 const generateSlug = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
@@ -82,8 +83,10 @@ export const appRouter = createTRPCRouter({
         });
 
         const result = await broadcaster.execute({
-          cid: "bafkreifiydmerkodzmjldvv4mbfljn3ekrbsd3jovbu3phei5j5awrwzem", //collectionResult.storageResult.cid,
-          ipnsName: "bb0f2b2f341f4deabf8cf34decc3df01", //existingIpnsName, // optional
+          cid: "bafkreifrdlh6qnbv5iphiycwxifcsaniujv57v4xvfhkxbgyguzke5ylpa",
+          ipnsName: undefined,
+          //collectionResult.storageResult.cid,
+          // ipnsName: "bb0f2b2f341f4deabf8cf34decc3df01", //existingIpnsName, // optional
         });
 
         return {
@@ -93,6 +96,55 @@ export const appRouter = createTRPCRouter({
       } catch (error: any) {
         console.error("Broadcasting failed:", error);
         throw new Error(`Failed to broadcast: ${error.message}`);
+      }
+    }),
+
+  analyze: baseProcedure
+    .input(
+      z.object({
+        deviceId: z.string(),
+        data: z.object({
+          temperature: z.number(),
+          humidity: z.number(),
+          timestamp: z.number(),
+        }),
+        storageConfirmation: z.object({
+          cid: z.string(),
+          ipnsName: z.string(),
+        }),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const responseAgent = new ResponseAgent({
+          openAiKey: process.env.OPENAI_API_KEY!,
+          privyConfig: {
+            appId: process.env.PRIVY_APP_ID!,
+            appSecret: process.env.PRIVY_APP_SECRET!,
+          },
+          rpcUrl: process.env.RPC_URL!,
+        });
+
+        const TEST_IPNS_ID =
+          "k51qzi5uqu5dhkh74rjmge7wspk8p59vvqv9ls2sgzmgqo3w4izm1btp9qf5k5";
+
+        // Test data for the response agent
+        const result = await responseAgent.execute({
+          deviceId: input.deviceId,
+          data: input.data,
+          storageConfirmation: {
+            ...input.storageConfirmation,
+            ipnsId: TEST_IPNS_ID,
+          },
+        });
+
+        return {
+          success: true,
+          result,
+        };
+      } catch (error: any) {
+        console.error("Analysis failed:", error);
+        throw new Error(`Failed to analyze data: ${error.message}`);
       }
     }),
 });

@@ -4,57 +4,97 @@ import { createTool } from "@covalenthq/ai-agent-sdk";
 export const createProcessingTool = () =>
   createTool({
     id: "data-processor",
-    description:
-      "Analyze sensor data and determine appropriate policies, alerts, and actions",
-    schema: z.object({
-      operation: z.enum(["inferPolicy", "checkConditions"]),
-      data: z.object({
-        deviceId: z.string(),
-        temperature: z.number().optional(),
-        humidity: z.number().optional(),
-        timestamp: z.number(),
-        metadata: z.record(z.any()).optional(),
-      }),
-    }),
+    description: "Tool for analyzing sensor readings and determining responses",
+    schema: z
+      .object({
+        operation: z.enum(["inferPolicy", "checkConditions"]),
+        data: z.object({
+          deviceId: z.string(),
+          gatewayUrl: z.string(),
+          timestamp: z.number(),
+        }),
+        context: z
+          .object({
+            task: z.string(),
+            guidelines: z.array(z.string()),
+            alertCriteria: z.array(z.string()),
+          })
+          .strict(),
+      })
+      .strict(),
+    //@ts-ignore
     execute: async (params) => {
       try {
-        switch (params.operation) {
-          case "inferPolicy":
-            // Let the AI determine policy based on data patterns
-            return JSON.stringify({
-              usagePolicy: "Processed", // AI determines this based on data
-              retention: {
-                duration: 30, // AI suggests retention period
-                reason: "Standard sensor data retention policy",
+        console.log("Processing with params:", params);
+        console.log("Fetching data from:", params.data.gatewayUrl);
+
+        const response = await fetch(params.data.gatewayUrl);
+        if (!response.ok) {
+          throw new Error(
+            `IPNS fetch failed: ${response.status} ${response.statusText}`
+          );
+        }
+
+        // Mock data for fallback testing in case IPNS is not accessible
+        // const mockData = {
+        //   temperature: 32,
+        //   humidity: 75,
+        //   timestamp: Date.now(),
+        // };
+        // const sensorData = await response.json().catch(() => mockData);
+        const sensorData = await response.json();
+        console.log("Retrieved/Mock data:", sensorData);
+
+        const result = {
+          timestamp: Date.now(),
+          deviceId: params.data.deviceId,
+        };
+
+        if (params.operation === "inferPolicy") {
+          return {
+            operation: "inferPolicy",
+            usagePolicy: "Processed",
+            retention: {
+              duration: 30,
+              reason: "Standard processing policy",
+            },
+            processingNotes: [
+              `Data quality: Good`,
+              `Temperature: ${sensorData.temperature}°C`,
+              `Humidity: ${sensorData.humidity}%`,
+              `Processing timestamp: ${new Date().toISOString()}`,
+            ],
+            confidence: 0.95,
+          };
+        } else {
+          return {
+            operation: "checkConditions",
+            alerts: [
+              sensorData.temperature > 30 ? "High temperature detected" : null,
+              sensorData.humidity > 70 ? "High humidity detected" : null,
+            ].filter(Boolean),
+            conditions: {
+              temperature: {
+                value: sensorData.temperature,
+                status: sensorData.temperature > 30 ? "warning" : "normal",
               },
-              processingNotes: [
-                "Temperature within normal operating range",
-                "Data quality checks passed",
-                "Suitable for standard processing pipeline",
-              ],
-            });
-
-          case "checkConditions":
-            // AI analyzes data for alerts and actions
-            return JSON.stringify({
-              alerts: [
-                // AI determines alerts based on context
-                "Temperature trending upward over threshold",
-                "Humidity variations detected",
-              ],
-              suggestedActions: [
-                "trigger_feedback",
-                "update_monitoring_frequency",
-              ],
-              confidence: 0.85,
-              reasoning: "Multiple parameters showing anomalous patterns",
-            });
-
-          default:
-            return JSON.stringify({ error: "Invalid operation" });
+              humidity: {
+                value: sensorData.humidity,
+                status: sensorData.humidity > 70 ? "warning" : "normal",
+              },
+            },
+            suggestedActions: [
+              "monitor_conditions",
+              sensorData.temperature > 30 ? "reduce_temperature" : null,
+              sensorData.humidity > 70 ? "reduce_humidity" : null,
+            ].filter(Boolean),
+            confidence: 0.9,
+            analysisTimestamp: new Date().toISOString(),
+          };
         }
       } catch (error: any) {
-        return JSON.stringify({ error: error.message });
+        console.error("Processing error:", error);
+        throw error;
       }
     },
   });

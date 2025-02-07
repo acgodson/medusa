@@ -3,7 +3,6 @@ import { createDataStorageTool, createPrivyWalletTool } from "./zee";
 import { PrivyClient } from "@privy-io/server-auth";
 import { PrivyWalletConfig } from "./zee/tools/privyWalletTool";
 
-// Define proper types for our messages and tool responses
 interface ToolCall {
   id: string;
   type: "function";

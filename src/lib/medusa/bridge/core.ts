@@ -1,5 +1,6 @@
 import { CollectionAgent } from "../agents/CollectionAgent";
-import { PrivyWalletConfig } from "../agents/zee/tools";
+import { PrivyWalletConfig } from "../agents/zee/tools/privyWalletTool";
+// import { PrivyWalletConfig } from "../agents/zee";
 import { WalletBridge } from "../wallets/server";
 
 // interface MedusaState {

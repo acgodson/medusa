@@ -1,59 +1,36 @@
 import { ZeeBaseAgent } from "./zee/base";
-import { WalletBridge } from "../wallets/server";
 import { PrivyWalletConfig } from "./zee/tools/privyWalletTool";
 import { createProcessingTool, createSmartWalletTool } from "./zee";
 
-//  types for analysis results
-// interface AnalysisResult {
-//   deviceId: string;
-//   timestamp: number;
-//   thresholds: {
-//     temperature?: {
-//       exceeded: boolean;
-//       value: number;
-//       threshold: number;
-//     };
-//     humidity?: {
-//       exceeded: boolean;
-//       value: number;
-//       threshold: number;
-//     };
-//   };
-//   recommendations?: string[];
-//   alerts?: string[];
-// }
 
-// Updated Response Agent
+
 export class ResponseAgent extends ZeeBaseAgent {
+  private dataProcessor: ReturnType<typeof createProcessingTool>;
+
   constructor(config: {
     openAiKey: string;
     privyConfig: PrivyWalletConfig;
     rpcUrl: string;
   }) {
-    const walletBridge = new WalletBridge(
-      config.privyConfig.appId,
-      config.privyConfig.appSecret,
-      config.rpcUrl
-    );
-
-    const CreateSmartWalletTool = createSmartWalletTool(walletBridge);
     const CreateProcessingTool = createProcessingTool();
-
     super({
       name: "Response Agent",
-      description: "Policy inference engine for sensor data",
+      description: "Agent for analyzing and inferring policies from sensor data",
       instructions: [
-        "1. Use data-processor tool to analyze incoming data",
-        "2. Determine appropriate policies and actions based on your inference",
-        "3. Handle any alerts or actions suggested by the processor",
-        "4. Update state contract when significant changes are detected",
+        "When analyzing sensor data:",
+        "1. Execute the data-processor tool with inferPolicy operation",
+        "2. Execute the data-processor tool with checkConditions operation",
+        "3. Combine results into a comprehensive analysis",
       ],
       tools: {
-        "smart-wallet": CreateSmartWalletTool,
         "data-processor": CreateProcessingTool,
       },
       openAiKey: config.openAiKey,
+      defaultTask: "Analyze sensor data and infer policies",
     });
+
+    // Store the tool instance for direct execution
+    this.dataProcessor = CreateProcessingTool;
   }
 
   async execute(params: {
@@ -61,62 +38,88 @@ export class ResponseAgent extends ZeeBaseAgent {
     data: any;
     storageConfirmation: {
       cid: string;
-      ipnsName: string;
+      ipnsId: string;
     };
   }) {
     try {
       console.log("Starting inference for device:", params.deviceId);
+      const gatewayUrl = `https://gateway.lighthouse.storage/ipns/${params.storageConfirmation.ipnsId}`;
 
-      // Let AI infer policy
-      const policyResult = await this.zeeAgent.tools?.[
-        "data-processor"
-      ].execute({
+      // Execute policy inference directly
+      console.log("Running policy analysis...");
+      const policyAnalysis = await this.dataProcessor.execute({
         operation: "inferPolicy",
         data: {
           deviceId: params.deviceId,
-          ...params.data,
+          gatewayUrl,
           timestamp: Date.now(),
+        },
+        context: {
+          task: "Policy Inference",
+          guidelines: [
+            "Analyze data quality and completeness",
+            "Detect anomalies in sensor readings",
+            "Consider historical context",
+            "Classify usage as Processed/Analyzed/Monetized",
+            "Determine retention period based on data significance",
+          ],
+          alertCriteria: [
+            "Check for readings outside normal ranges",
+            "Identify rapid changes or anomalies",
+            "Flag data quality issues",
+            "Monitor for system health indicators",
+          ],
         },
       });
 
-      // Check conditions using AI
-      const conditionsResult = await this.zeeAgent.tools?.[
-        "data-processor"
-      ].execute({
+      console.log("Policy Analysis Result:", JSON.stringify(policyAnalysis, null, 2));
+
+      // Execute conditions check directly
+      console.log("Running conditions analysis...");
+      const conditionsAnalysis = await this.dataProcessor.execute({
         operation: "checkConditions",
         data: {
           deviceId: params.deviceId,
-          ...params.data,
+          gatewayUrl,
           timestamp: Date.now(),
+        },
+        context: {
+          task: "Condition Check",
+          alertCriteria: [
+            "Check for readings outside normal ranges",
+            "Identify rapid changes or anomalies",
+            "Flag data quality issues",
+            "Monitor for system health indicators",
+          ],
+          guidelines: [
+            "Analyze data quality and completeness",
+            "Detect anomalies in sensor readings",
+            "Consider historical context",
+            "Classify usage as Processed/Analyzed/Monetized",
+            "Determine retention period based on data significance",
+          ],
         },
       });
 
-      const policy = JSON.parse(policyResult);
-      const conditions = JSON.parse(conditionsResult);
+      console.log("Conditions Analysis Result:", JSON.stringify(conditionsAnalysis, null, 2));
 
-      // Construct inference result
+      // Combine results into final inference
       const inference = {
         deviceId: params.deviceId,
         timestamp: Date.now(),
-        ...policy,
-        ...conditions,
+        analysis: {
+          policy: policyAnalysis,
+          conditions: conditionsAnalysis,
+          metadata: {
+            analysisTime: new Date().toISOString(),
+            dataSource: gatewayUrl,
+          },
+        },
         storageRef: {
           cid: params.storageConfirmation.cid,
-          ipnsName: params.storageConfirmation.ipnsName,
+          ipnsId: params.storageConfirmation.ipnsId,
         },
       };
-
-      // Update state if needed
-      if (conditions.suggestedActions?.length > 0) {
-        await this.zeeAgent.tools?.["smart-wallet"].execute({
-          operation: "broadcast",
-          walletId: "response-agent",
-          txData: {
-            contractAddress: process.env.STATE_CONTRACT_ADDRESS!,
-            data: JSON.stringify(inference),
-          },
-        });
-      }
 
       return {
         success: true,
@@ -126,8 +129,7 @@ export class ResponseAgent extends ZeeBaseAgent {
       console.error("Response agent execution failed:", error);
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
+        error: error instanceof Error ? error.message : "Unknown error occurred",
       };
     }
   }

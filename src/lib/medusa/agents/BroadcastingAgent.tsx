@@ -1,5 +1,5 @@
 import { ZeeBaseAgent } from "./zee/base";
-import { createSmartWalletTool } from "./zee";
+import { createIPNSTool, createSmartWalletTool } from "./zee";
 import { WalletBridge } from "../wallets/server";
 import { PrivyWalletConfig } from "./zee/tools/privyWalletTool";
 
@@ -16,6 +16,7 @@ export class BroadcastingAgent extends ZeeBaseAgent {
       config.rpcUrl
     );
 
+    const CreateIPNSTool = createIPNSTool(config.lighthouseApiKey);
     const CreateSmartWalletTool = createSmartWalletTool(walletBridge);
 
     super({
@@ -27,6 +28,7 @@ export class BroadcastingAgent extends ZeeBaseAgent {
       ],
       tools: {
         "smart-wallet": CreateSmartWalletTool,
+        storage: CreateIPNSTool,
       },
       openAiKey: config.openAiKey,
     });
@@ -74,7 +76,7 @@ export class BroadcastingAgent extends ZeeBaseAgent {
         throw new Error("Failed to publish to IPNS: Invalid response");
       }
 
-      return ipnsName;
+      return { ipnsName, ipnsId: publishResponse.data.Name };
     } catch (error) {
       console.error("IPNS operation error:", error);
       throw new Error(
@@ -101,7 +103,7 @@ export class BroadcastingAgent extends ZeeBaseAgent {
       console.log("Starting IPNS operations for CID:", params.cid);
 
       // Handle IPNS operations
-      const ipnsName = await this.handleIpnsOperations(
+      const { ipnsName, ipnsId } = await this.handleIpnsOperations(
         params.cid,
         params.ipnsName
       );
@@ -110,7 +112,7 @@ export class BroadcastingAgent extends ZeeBaseAgent {
         success: true,
         cid: params.cid,
         ipnsName,
-        ipnsGatewayUrl: `https://gateway.lighthouse.storage/ipns/${ipnsName}`,
+        ipnsGatewayUrl: `https://gateway.lighthouse.storage/ipns/${ipnsId}`,
       };
     } catch (error) {
       console.error("Broadcasting operation failed:", error);
