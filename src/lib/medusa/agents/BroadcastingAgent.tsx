@@ -1,10 +1,7 @@
 import { ZeeBaseAgent } from "./zee/base";
-import {
-  createSmartWalletTool,
-  createStorageTool,
-  PrivyWalletConfig,
-} from "./zee/tools";
+import { createSmartWalletTool } from "./zee";
 import { WalletBridge } from "../wallets/server";
+import { PrivyWalletConfig } from "./zee/tools/privyWalletTool";
 
 export class BroadcastingAgent extends ZeeBaseAgent {
   constructor(config: {
@@ -20,7 +17,6 @@ export class BroadcastingAgent extends ZeeBaseAgent {
     );
 
     const CreateSmartWalletTool = createSmartWalletTool(walletBridge);
-    const CreateStorageTool = createStorageTool(config.lighthouseApiKey);
 
     super({
       name: "Storage Broadcaster Agent",
@@ -30,7 +26,6 @@ export class BroadcastingAgent extends ZeeBaseAgent {
         "2. Broadcast state updates using smart wallet",
       ],
       tools: {
-        storage: CreateStorageTool,
         "smart-wallet": CreateSmartWalletTool,
       },
       openAiKey: config.openAiKey,

@@ -1,11 +1,7 @@
 import { ZeeBaseAgent } from "./zee/base";
-import {
-  createDataStorageTool,
-  createPrivyWalletTool,
-  PrivyWalletConfig,
-} from "./zee/tools";
+import { createDataStorageTool, createPrivyWalletTool } from "./zee";
 import { PrivyClient } from "@privy-io/server-auth";
-import lighthouse from "@lighthouse-web3/sdk";
+import { PrivyWalletConfig } from "./zee/tools/privyWalletTool";
 
 // Define proper types for our messages and tool responses
 interface ToolCall {

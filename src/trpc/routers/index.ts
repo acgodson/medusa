@@ -81,8 +81,6 @@ export const appRouter = createTRPCRouter({
           rpcUrl: process.env.RPC_URL!,
         });
 
-        // const result = await storageBroadcaster.execute(input);
-
         const result = await broadcaster.execute({
           cid: "bafkreifiydmerkodzmjldvv4mbfljn3ekrbsd3jovbu3phei5j5awrwzem", //collectionResult.storageResult.cid,
           ipnsName: "bb0f2b2f341f4deabf8cf34decc3df01", //existingIpnsName, // optional
