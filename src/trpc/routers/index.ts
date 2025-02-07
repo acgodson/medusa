@@ -82,6 +82,10 @@ export const appRouter = createTRPCRouter({
             appSecret: process.env.PRIVY_APP_SECRET!,
           },
           lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
+          pinataJwt: process.env.PINATA_JWT!,
+          pinataGateway:
+            process.env.PINATA_GATEWAY ||
+            "scarlet-warm-anaconda-739.mypinata.cloud",
           rpcUrl: process.env.RPC_URL!,
         });
 
@@ -96,32 +100,6 @@ export const appRouter = createTRPCRouter({
         throw new Error(`Failed to broadcast: ${error.message}`);
       }
     }),
-
-    
-  // Optional: Get IPNS records
-  getIpnsRecords: baseProcedure.query(async () => {
-    try {
-      const storageBroadcaster = new StorageBroadcasterAgent({
-        openAiKey: process.env.OPENAI_API_KEY!,
-        privyConfig: {
-          appId: process.env.PRIVY_APP_ID!,
-          appSecret: process.env.PRIVY_APP_SECRET!,
-        },
-        lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
-        rpcUrl: process.env.RPC_URL!,
-      });
-      //@ts-ignore
-      const records = await storageBroadcaster.zeeAgent.tools?.[
-        "lighthouse-storage"
-      ].execute({
-        operation: "getAllKeys",
-      });
-
-      return JSON.parse(records);
-    } catch (error: any) {
-      throw new Error(`Failed to get IPNS records: ${error.message}`);
-    }
-  }),
 });
 
 // export type definition of API
