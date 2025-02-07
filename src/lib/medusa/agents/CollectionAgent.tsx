@@ -1,12 +1,11 @@
-import { z } from "zod";
 import { ZeeBaseAgent } from "./zee/base";
-import { DataSchema } from "./zee/types";
 import {
   createDataStorageTool,
   createPrivyWalletTool,
   PrivyWalletConfig,
 } from "./zee/tools";
 import { PrivyClient } from "@privy-io/server-auth";
+import lighthouse from "@lighthouse-web3/sdk";
 
 // Define proper types for our messages and tool responses
 interface ToolCall {
@@ -31,15 +30,13 @@ interface SignatureResponse {
   walletId: string;
 }
 
-interface StorageResponse {
-  success: boolean;
-  location?: string;
-  error?: string;
-}
-
-export class DataCollectionAgent extends ZeeBaseAgent {
-  constructor(config: { openAiKey: string; privyConfig: PrivyWalletConfig }) {
-    const storageTool = createDataStorageTool();
+export class CollectionAgent extends ZeeBaseAgent {
+  constructor(config: {
+    openAiKey: string;
+    lighthouseApiKey: string;
+    privyConfig: PrivyWalletConfig;
+  }) {
+    const storageTool = createDataStorageTool(config.lighthouseApiKey);
     const privy = new PrivyClient(
       config.privyConfig.appId,
       config.privyConfig.appSecret
@@ -52,14 +49,14 @@ export class DataCollectionAgent extends ZeeBaseAgent {
       instructions: [
         "When you receive sensor data:",
         "1. ALWAYS use the privy-wallet tool first to sign the data",
-        "2. After getting the signature, ALWAYS use the store-sensor-data tool to store the signed data",
-        "3. Return the complete operation results",
+        "2. After getting the signature, ALWAYS use the store-sensor-data tool to store and upload the signed data",
+        "3. Return the complete operation results including the IPFS CID",
       ],
       openAiKey: config.openAiKey,
-      tools: {    
+      tools: {
         "store-sensor-data": storageTool,
         "privy-wallet": privyWalletTool,
-      },      
+      },
       defaultTask: "Process and store sensor data",
     });
   }
@@ -98,30 +95,14 @@ export class DataCollectionAgent extends ZeeBaseAgent {
         }
       );
 
-      // Set up explicit tool call request
-      signingState.messages = [
-        {
-          role: "user" as const,
-          content: JSON.stringify({
-            thought: "Need to sign sensor data using privy-wallet tool",
-            action: "privy-wallet",
-            action_input: {
-              operation: "sign" as const,
-              message: dataToSign,
-            },
-          }),
-        },
-      ];
-
       // Execute signing request
       const signResult = await this.zeeAgent.run(signingState);
 
-      // Find tool call in agent response
+      // Find signing tool call
       const toolCall: any = signResult.messages.find(
         (msg: any) => msg.role === "assistant" && msg.tool_calls
       );
 
-      // Handle signing tool execution
       if (!toolCall?.tool_calls) {
         throw new Error("No tool calls found in agent response");
       }
@@ -141,24 +122,19 @@ export class DataCollectionAgent extends ZeeBaseAgent {
 
       const args = JSON.parse(signCall.function.arguments);
       const result = await privyTool.execute(args);
-
-      // Add signing result to conversation
-      signResult.messages.push({
-        role: "function",
-        name: "privy-wallet",
-        content: result,
-      });
-
       const parsedResult = JSON.parse(result) as SignatureResponse;
 
-      // Create storage state
+      // Create storage state with signed data
       const storageState = this.createAgentState(
         {
-          data: params.data,
+          data: {
+            deviceId: params.deviceId,
+            ...params.data,
+          },
           signature: parsedResult.signature,
         },
         {
-          task: "Store signed data",
+          task: "Store and upload signed data",
         }
       );
 
@@ -189,13 +165,6 @@ export class DataCollectionAgent extends ZeeBaseAgent {
 
       const storageArgs = JSON.parse(storeCall.function.arguments);
       const storageResult = await storageTool.execute(storageArgs);
-
-      // Add storage result to conversation
-      storeResult.messages.push({
-        role: "function",
-        name: "store-sensor-data",
-        content: storageResult,
-      });
 
       return {
         success: true,

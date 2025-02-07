@@ -1,11 +1,9 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "../init";
 import { customAlphabet } from "nanoid";
-import { PrivyClient } from "@privy-io/server-auth";
-import { DataCollectionAgent } from "@/lib/medusa/agents/dataCollectionAgent";
 import { MedusaBridge } from "@/lib/medusa/bridge/core";
 import { console } from "inspector";
-import { StorageBroadcasterAgent } from "@/lib/medusa/agents/BroadcasterAgent";
+import { BroadcastingAgent } from "@/lib/medusa/agents/BroadcastingAgent";
 
 const generateSlug = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
@@ -37,10 +35,8 @@ export const appRouter = createTRPCRouter({
             appSecret: process.env.PRIVY_APP_SECRET!,
           },
           rpcUrl: process.env.RPC_URL!,
+          lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
         });
-
-        //  DataCollectionAgent
-        const agent = await bridge.getZeeAgent("dataCollection");
 
         // Execute data collection operation
         const result = await bridge.executeOperation(
@@ -75,21 +71,22 @@ export const appRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       try {
-        const storageBroadcaster = new StorageBroadcasterAgent({
+        const broadcaster = new BroadcastingAgent({
           openAiKey: process.env.OPENAI_API_KEY!,
           privyConfig: {
             appId: process.env.PRIVY_APP_ID!,
             appSecret: process.env.PRIVY_APP_SECRET!,
           },
           lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
-          pinataJwt: process.env.PINATA_JWT!,
-          pinataGateway:
-            process.env.PINATA_GATEWAY ||
-            "scarlet-warm-anaconda-739.mypinata.cloud",
           rpcUrl: process.env.RPC_URL!,
         });
 
-        const result = await storageBroadcaster.execute(input);
+        // const result = await storageBroadcaster.execute(input);
+
+        const result = await broadcaster.execute({
+          cid: "bafkreifiydmerkodzmjldvv4mbfljn3ekrbsd3jovbu3phei5j5awrwzem", //collectionResult.storageResult.cid,
+          ipnsName: "bb0f2b2f341f4deabf8cf34decc3df01", //existingIpnsName, // optional
+        });
 
         return {
           success: true,
