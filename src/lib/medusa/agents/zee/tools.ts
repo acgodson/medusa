@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { createTool } from "@covalenthq/ai-agent-sdk";
 import { DataSchema } from "./types";
-import { PrivyClient } from "@privy-io/server-auth";
+import { Hex, PrivyClient } from "@privy-io/server-auth";
+import lighthouse from "@lighthouse-web3/sdk";
+import { WalletBridge } from "../../wallets/server";
 
 export const WalletSchema = z.object({
   operation: z.enum(["getAddress", "getWalletId", "sign"]),
@@ -104,5 +106,103 @@ export const createBalanceTool = () =>
     execute: async (params) => {
       // Implementation
       return "Balance information";
+    },
+  });
+
+// Smart Wallet Tool
+export const createSmartWalletTool = (walletBridge: WalletBridge) =>
+  createTool({
+    id: "smart-wallet",
+    description: "Create and manage Coinbase Smart Wallet for broadcasting",
+    schema: z.object({
+      operation: z.enum(["create", "broadcast"]),
+      walletId: z.string(),
+      txData: z
+        .object({
+          contractAddress: z.string(),
+          data: z.string(),
+        })
+        .optional(),
+    }),
+    execute: async (params) => {
+      try {
+        if (params.operation === "create") {
+          const smartAccount = await walletBridge.createSmartAccount(
+            params.walletId
+          );
+          return JSON.stringify({
+            accountAddress: smartAccount.address,
+            walletId: params.walletId,
+          });
+        }
+
+        if (!params.txData) {
+          throw new Error("Transaction data required for broadcast");
+        }
+
+        const txHash = await walletBridge.executeOperation(
+          params.walletId,
+          params.txData.contractAddress as Hex,
+          params.txData.data as Hex
+        );
+
+        return JSON.stringify({
+          success: true,
+          transactionHash: txHash,
+        });
+      } catch (error: any) {
+        throw new Error(`Smart wallet operation failed: ${error.message}`);
+      }
+    },
+  });
+
+// Filecoin Storage Tool
+export const createStorageTool = (apiKey: string) =>
+  createTool({
+    id: "lighthouse-storage",
+    description: "Store and manage data on IPFS/IPNS via Lighthouse",
+    schema: z.object({
+      operation: z.enum([
+        "upload",
+        "generateKey",
+        "publishRecord",
+        "getAllKeys",
+      ]),
+      data: z.string().optional(),
+      ipnsName: z.string().optional(),
+      cid: z.string().optional(),
+    }),
+    execute: async (params) => {
+      try {
+        switch (params.operation) {
+          case "upload":
+            const uploadResponse = await lighthouse.uploadText(
+              params.data!,
+              apiKey
+            );
+            return JSON.stringify(uploadResponse);
+
+          case "generateKey":
+            const keyResponse = await lighthouse.generateKey(apiKey);
+            return JSON.stringify(keyResponse);
+
+          case "publishRecord":
+            const pubResponse = await lighthouse.publishRecord(
+              params.cid!,
+              params.ipnsName!,
+              apiKey
+            );
+            return JSON.stringify(pubResponse);
+
+          case "getAllKeys":
+            const keys = await lighthouse.getAllKeys(apiKey);
+            return JSON.stringify(keys);
+
+          default:
+            return JSON.stringify({ error: "Invalid operation" });
+        }
+      } catch (error: any) {
+        return JSON.stringify({ error: error.message });
+      }
     },
   });

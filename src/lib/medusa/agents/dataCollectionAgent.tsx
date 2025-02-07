@@ -56,10 +56,10 @@ export class DataCollectionAgent extends ZeeBaseAgent {
         "3. Return the complete operation results",
       ],
       openAiKey: config.openAiKey,
-      tools: {
+      tools: {    
         "store-sensor-data": storageTool,
         "privy-wallet": privyWalletTool,
-      },
+      },      
       defaultTask: "Process and store sensor data",
     });
   }

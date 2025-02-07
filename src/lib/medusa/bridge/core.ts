@@ -3,6 +3,13 @@ import { PrivyWalletConfig } from "../agents/zee/tools";
 import { WalletBridge } from "../wallets/server";
 import { Hex } from "viem";
 
+interface MedusaState {
+  dataCollectionStatus: "idle" | "collecting" | "processing" | "complete";
+  analyticsStatus: "idle" | "analyzing" | "complete";
+  lastProcessedData: any;
+  alerts: Array<{ threshold: number; value: number; timestamp: number }>;
+}
+
 export class MedusaBridge {
   private static instance: MedusaBridge;
   private agents: Map<string, any> = new Map();
@@ -78,4 +85,31 @@ export class MedusaBridge {
         throw new Error(`Unknown agent system: ${system}`);
     }
   }
+
+  // // Add workflow management
+  // async executeWorkflow(workflowType: string, params: any) {
+  //   const workflow = await this.getWorkflow(workflowType);
+  //   const result = await workflow.execute(params);
+
+  //   // Trigger analytics if needed
+  //   if (this.shouldTriggerAnalytics(result)) {
+  //     await this.triggerAnalytics(result);
+  //   }
+
+  //   // Update state contract
+  //   await this.updateState(result);
+
+  //   return result;
+  // }
+
+  // private async updateState(result: any) {
+  //   const stateUpdate = await this.walletBridge.executeOperation(
+  //     "cdp.stateContract.update",
+  //     {
+  //       data: result,
+  //       contractAddress: this.config.stateContractAddress,
+  //     }
+  //   );
+  //   return stateUpdate;
+  // }
 }
