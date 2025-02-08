@@ -11,6 +11,12 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        primary: "var(--medusa-gold)",
+        "primary-foreground": "var(--medusa-black)",
+        secondary: "var(--medusa-black)",
+        "secondary-foreground": "var(--medusa-gold)",
+        accent: "var(--medusa-light)",
+        "accent-foreground": "var(--medusa-black)",
       },
     },
   },

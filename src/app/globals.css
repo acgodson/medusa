@@ -3,8 +3,37 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #ffffff; /* Light background */
+  --foreground: #171717; /* Dark text */
+  --medusa-gold: #daa520;
+  --medusa-black: #171717;
+  --medusa-light: #f7f7f5;
+}
+
+@layer components {
+  /* Primary Button */
+  .btn-primary {
+    @apply bg-medusa-gold text-medusa-black px-4 py-2 rounded-lg font-bold transition-all duration-200;
+  }
+  .btn-primary:hover {
+    @apply bg-medusa-black text-medusa-gold;
+  }
+
+  /* Secondary Button */
+  .btn-secondary {
+    @apply bg-medusa-black text-medusa-gold px-4 py-2 rounded-lg font-bold transition-all duration-200;
+  }
+  .btn-secondary:hover {
+    @apply bg-medusa-gold text-medusa-black;
+  }
+
+  /* Outline Button */
+  .btn-outline {
+    @apply border-2 border-medusa-gold text-medusa-gold px-4 py-2 rounded-lg font-bold transition-all duration-200;
+  }
+  .btn-outline:hover {
+    @apply bg-medusa-gold text-medusa-black;
+  }
 }
 
 body {
