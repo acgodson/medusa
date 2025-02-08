@@ -1,19 +1,27 @@
 import { ZeeBaseAgent } from "./zee/base";
 import { createIPNSTool, createSmartWalletTool } from "./zee";
-import { WalletBridge } from "../wallets/server";
+import { WalletBridge } from "../wallets/broadcast-server";
 import { PrivyWalletConfig } from "./zee/tools/privyWalletTool";
+import { encodeAbiParameters, encodeFunctionData } from "viem";
+import { PrivyClient } from "@privy-io/server-auth";
+import RegistryArtifacts from "../../../../contracts/artifacts/MedusaRegistry.json";
 
 export class BroadcastingAgent extends ZeeBaseAgent {
+  private privyWalletBridge: WalletBridge;
+  public contractAddress: `0x${string}`;
   constructor(config: {
     openAiKey: string;
     privyConfig: PrivyWalletConfig;
     lighthouseApiKey: string;
     rpcUrl: string;
+    contractAddress: `0x${string}`;
+    adminPrivateKey: string;
   }) {
     const walletBridge = new WalletBridge(
       config.privyConfig.appId,
       config.privyConfig.appSecret,
-      config.rpcUrl
+      config.rpcUrl,
+      config.adminPrivateKey
     );
 
     const CreateIPNSTool = createIPNSTool(config.lighthouseApiKey);
@@ -32,6 +40,9 @@ export class BroadcastingAgent extends ZeeBaseAgent {
       },
       openAiKey: config.openAiKey,
     });
+
+    this.privyWalletBridge = walletBridge;
+    this.contractAddress = config.contractAddress;
   }
 
   private async handleIpnsOperations(cid: string, ipnsName?: string) {
@@ -87,11 +98,58 @@ export class BroadcastingAgent extends ZeeBaseAgent {
     }
   }
 
+  private async getOrCreateWallet(privy: PrivyClient) {
+    const wallets = await privy.walletApi.getWallets({
+      chainType: "ethereum",
+    });
+    return (
+      wallets.data[0] ||
+      (await privy.walletApi.create({ chainType: "ethereum" }))
+    );
+  }
+
+  private async registerOnChain(
+    walletId: string,
+    ipnsName: string,
+    ipnsId: string
+  ) {
+    try {
+      console.log("Registering metadata on-chain...");
+
+      const data = encodeFunctionData({
+        abi: RegistryArtifacts.abi,
+        functionName: "createRecord",
+        args: [ipnsName, ipnsId],
+      });
+
+      // Execute contract call via smart wallet
+      const result = await this.zeeAgent.tools?.["smart-wallet"].execute({
+        operation: "broadcast",
+        walletId,
+        txData: {
+          contractAddress: this.contractAddress,
+          data,
+        },
+      });
+
+      const parsedResult = JSON.parse(result);
+      if (!parsedResult.success) {
+        throw new Error("Contract interaction failed");
+      }
+
+      return parsedResult.transactionHash;
+    } catch (error) {
+      console.error("Contract registration error:", error);
+      throw error;
+    }
+  }
+
   async execute(params: { cid: string; ipnsName?: string }): Promise<{
     success: boolean;
     cid?: string;
     ipnsName?: string;
     ipnsGatewayUrl?: string;
+    transactionHash?: string;
     error?: string;
   }> {
     try {
@@ -108,11 +166,24 @@ export class BroadcastingAgent extends ZeeBaseAgent {
         params.ipnsName
       );
 
+      const activeWallet = await this.getOrCreateWallet(
+        this.privyWalletBridge.privy
+      );
+      console.log("Active wallet:", activeWallet);
+
+      // Register metadata on-chain
+      const txHash = await this.registerOnChain(
+        activeWallet.id,
+        ipnsName as string,
+        ipnsId
+      );
+
       return {
         success: true,
         cid: params.cid,
         ipnsName,
         ipnsGatewayUrl: `https://gateway.lighthouse.storage/ipns/${ipnsId}`,
+        transactionHash: txHash,
       };
     } catch (error) {
       console.error("Broadcasting operation failed:", error);

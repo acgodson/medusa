@@ -38,6 +38,7 @@ export const appRouter = createTRPCRouter({
           },
           rpcUrl: process.env.RPC_URL!,
           lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
+          adminPrivateKey: process.env.ADMIN_PRIVATE_KEY!,
         });
 
         // Execute data collection operation
@@ -81,6 +82,8 @@ export const appRouter = createTRPCRouter({
           },
           lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
           rpcUrl: process.env.RPC_URL!,
+          contractAddress: process.env.REGISTRY_CONTRACT as `0x${string}`,
+          adminPrivateKey: process.env.ADMIN_PRIVATE_KEY!,
         });
 
         const result = await broadcaster.execute({

@@ -1,7 +1,7 @@
 import { CollectionAgent } from "../agents/CollectionAgent";
 import { PrivyWalletConfig } from "../agents/zee/tools/privyWalletTool";
 // import { PrivyWalletConfig } from "../agents/zee";
-import { WalletBridge } from "../wallets/server";
+import { WalletBridge } from "../wallets/broadcast-server";
 
 // interface MedusaState {
 //   dataCollectionStatus: "idle" | "collecting" | "processing" | "complete";
@@ -21,12 +21,14 @@ export class MedusaBridge {
       privyConfig: PrivyWalletConfig;
       rpcUrl: string;
       lighthouseApiKey: string;
+      adminPrivateKey: string;
     }
   ) {
     this.walletBridge = new WalletBridge(
       config.privyConfig.appId,
       config.privyConfig.appSecret,
-      config.rpcUrl
+      config.rpcUrl,
+      config.adminPrivateKey
     );
   }
 
@@ -39,6 +41,7 @@ export class MedusaBridge {
     privyConfig: PrivyWalletConfig;
     rpcUrl: string;
     lighthouseApiKey: string;
+    adminPrivateKey: string;
   }) {
     if (!MedusaBridge.instance && config) {
       MedusaBridge.instance = new MedusaBridge(config);

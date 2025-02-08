@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTool } from "@covalenthq/ai-agent-sdk";
-import { WalletBridge } from "@/lib/medusa/wallets/server";
+import { WalletBridge } from "@/lib/medusa/wallets/broadcast-server";
 import { Hex } from "@privy-io/server-auth";
 
 export const createSmartWalletTool = (walletBridge: WalletBridge) =>
@@ -20,9 +20,7 @@ export const createSmartWalletTool = (walletBridge: WalletBridge) =>
     execute: async (params) => {
       try {
         if (params.operation === "create") {
-          const smartAccount = await walletBridge.createSmartAccount(
-            params.walletId
-          );
+          const smartAccount = await walletBridge.createSmartAccount();
           return JSON.stringify({
             accountAddress: smartAccount.address,
             walletId: params.walletId,
@@ -32,6 +30,8 @@ export const createSmartWalletTool = (walletBridge: WalletBridge) =>
         if (!params.txData) {
           throw new Error("Transaction data required for broadcast");
         }
+
+        
 
         const txHash = await walletBridge.executeOperation(
           params.walletId,
