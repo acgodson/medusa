@@ -11,8 +11,6 @@ import { Input } from "@/components/atoms/input";
 import { trpc } from "@/trpc/client";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useEthContext } from "@/providers/EthContext";
-import { createPublicClient, http } from "viem";
-import { baseSepolia } from "viem/chains";
 
 interface JoinWorkflowDialogProps {
   workflowId: number;

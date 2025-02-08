@@ -21,10 +21,11 @@ interface EthContextType {
 
 const EthContext = createContext<EthContextType | undefined>(undefined);
 
-export const Erc4337Provider: React.FC<{ children: ReactNode }> = ({
+export const EthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const { authenticated, login, logout, connectWallet } = usePrivy();
+  const { authenticated, login, logout, connectWallet, connectOrCreateWallet } =
+    usePrivy();
   const { wallets } = useWallets();
 
   const [network, switchNetwork] = useState<any | null>(baseSepolia);
@@ -39,7 +40,7 @@ export const Erc4337Provider: React.FC<{ children: ReactNode }> = ({
         await logout();
       }
       login();
-      connectWallet();
+      // connectOrCreateWallet();
     } catch (e) {
       console.log((e as any).message as any);
     }

@@ -1,12 +1,12 @@
-
-
-import { useCallback } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { useEthContext } from '@/providers/EthContext';
+import { useCallback } from "react";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useEthContext } from "@/providers/EthContext";
 
 export const useAuthenticatedAction = () => {
   const { authenticated } = usePrivy();
   const { handleLogin } = useEthContext();
+  const { wallets } = useWallets();
+  const connectedWallet = wallets.find((wallet) => wallet.type === "ethereum");
 
   const withAuth = useCallback(
     async (action: () => Promise<void> | void) => {
@@ -18,7 +18,7 @@ export const useAuthenticatedAction = () => {
             await action();
           }
         } catch (error) {
-          console.error('Authentication failed:', error);
+          console.error("Authentication failed:", error);
           // Action is cancelled if authentication fails
           return;
         }

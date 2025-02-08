@@ -5,20 +5,23 @@ import { privyConfig, wagmiConfig } from "@/lib/config/env";
 import { WagmiProvider } from "@privy-io/wagmi";
 import { MedusaProvider } from "./MedusaProvider";
 import { PrivyClientConfig, PrivyProvider } from "@privy-io/react-auth";
+import { EthProvider } from "./EthContext";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <TRPCProvider>
-        <PrivyProvider
-          appId={"cm09c0kux05vl7269wln6qrff"}
-          config={privyConfig as PrivyClientConfig}
-        >
+      <PrivyProvider
+        appId={"cm6rro6rj00a39ffmyokmg9x4"}
+        config={privyConfig as PrivyClientConfig}
+      >
+        <TRPCProvider>
           <WagmiProvider config={wagmiConfig}>
-            <MedusaProvider>{children}</MedusaProvider>
+            <MedusaProvider>
+              <EthProvider>{children}</EthProvider>
+            </MedusaProvider>
           </WagmiProvider>
-        </PrivyProvider>
-      </TRPCProvider>
+        </TRPCProvider>{" "}
+      </PrivyProvider>
     </>
   );
 }
