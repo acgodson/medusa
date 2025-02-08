@@ -2,126 +2,173 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract MedusaRegistry is Ownable {
-    struct MetadataRecord {
+contract MedusaRegistry is Ownable, ReentrancyGuard {
+    struct Workflow {
         string ipnsName;
         string ipnsId;
-        address controller;
-        uint256 timestamp;
+        address creator;
         bool active;
+        uint256 contributorCount;
+        uint256 timestamp;
     }
 
-    // Counter for generating unique IDs
-    uint256 private _recordCounter;
+    uint256 private _workflowCounter;
+    mapping(string => uint256) public deviceExecutionCounter;
 
-    // Mapping from ID to MetadataRecord
-    mapping(uint256 => MetadataRecord) public records;
+    // Workflow mappings
+    mapping(uint256 => Workflow) public workflows;
 
-    // Mapping from IPNS ID to record ID for quick lookups
-    mapping(string => uint256) public ipnsToRecordId;
+    // workflow ipns filter
+    mapping(string => uint256) public ipnsToWorkflowId;
+    mapping(uint256 => string) public workflowIdToIpns;
+
+    // user devices by workflow
+    mapping(address => mapping(uint256 => string[])) public userWorkflowDevices;
+
+    // device nullifiers
+    mapping(string => bool) public registeredDevices;
+    mapping(string => mapping(uint256 => bool)) public workflowDevices;
 
     // Events
-    event RecordCreated(
+    event WorkflowCreated(
         uint256 indexed id,
-        string ipnsName,
-        string ipnsId,
-        address controller
+        address indexed creator,
+        string ipnsId
     );
-    event RecordUpdated(uint256 indexed id, string ipnsName, string ipnsId);
-    event RecordDeactivated(uint256 indexed id);
+    event DeviceRegistered(
+        uint256 indexed workflowId,
+        string walletId,
+        address indexed userAddress
+    );
+    event RecordUpdated(
+        string indexed walletId,
+        uint256 indexed workflowId,
+        uint256 executionCount
+    );
+    event RecordDeactivated(
+        uint256 indexed workflowId,
+        address indexed deactivator
+    );
+
+    error WorkflowNotActive();
+    error DeviceAlreadyRegistered();
+    error DeviceNotRegistered();
+    error DeviceNotRegisteredForWorkflow();
+    error InvalidWorkflowId();
+    error NotAuthorized();
+    error EmptyIPNSData();
 
     constructor() Ownable(msg.sender) {}
 
-    function createRecord(
-        string memory ipnsName,
-        string memory ipnsId
-    ) external returns (uint256) {
-        require(bytes(ipnsName).length > 0, "Invalid IPNS name");
-        require(bytes(ipnsId).length > 0, "Invalid IPNS ID");
-        // require(ipnsToRecordId[ipnsId] == 0, "IPNS ID already registered");
+    function createWorkflow(string calldata _ipnsName, string calldata _ipnsId)
+        external
+        nonReentrant
+        returns (uint256)
+    {
+        if (bytes(_ipnsName).length == 0 || bytes(_ipnsId).length == 0) {
+            revert EmptyIPNSData();
+        }
 
-        _recordCounter++;
-        uint256 newRecordId = _recordCounter;
+        _workflowCounter++;
+        uint256 newWorkflowId = _workflowCounter;
 
-        records[newRecordId] = MetadataRecord({
-            ipnsName: ipnsName,
-            ipnsId: ipnsId,
-            controller: msg.sender,
-            timestamp: block.timestamp,
-            active: true
+        workflows[newWorkflowId] = Workflow({
+            creator: msg.sender,
+            active: true,
+            contributorCount: 0,
+            ipnsName: _ipnsName,
+            ipnsId: _ipnsId,
+            timestamp: block.timestamp
         });
 
-        ipnsToRecordId[ipnsId] = newRecordId;
+        workflowIdToIpns[newWorkflowId] = _ipnsId;
+        ipnsToWorkflowId[_ipnsId] = newWorkflowId;
 
-        emit RecordCreated(newRecordId, ipnsName, ipnsId, msg.sender);
-        return newRecordId;
+        emit WorkflowCreated(newWorkflowId, msg.sender, _ipnsId);
+        return newWorkflowId;
     }
 
-    function updateRecord(
-        uint256 recordId,
-        string memory newIpnsName,
-        string memory newIpnsId
-    ) external {
-        require(
-            recordId > 0 && recordId <= _recordCounter,
-            "Invalid record ID"
-        );
-        MetadataRecord storage record = records[recordId];
-        require(record.active, "Record is deactivated");
-        require(record.controller == msg.sender, "Not record creator");
+    function registerDevice(uint256 workflowId, string calldata walletId)
+        external
+        nonReentrant
+    {
+        if (!workflows[workflowId].active) {
+            revert WorkflowNotActive();
+        }
+        if (registeredDevices[walletId]) {
+            revert DeviceAlreadyRegistered();
+        }
+        if (bytes(walletId).length == 0) {
+            revert EmptyIPNSData();
+        }
 
-        // Remove old IPNS ID mapping
-        delete ipnsToRecordId[record.ipnsId];
+        userWorkflowDevices[msg.sender][workflowId].push(walletId);
+        registeredDevices[walletId] = true;
+        workflowDevices[walletId][workflowId] = true;
+        workflows[workflowId].contributorCount++;
 
-        // Update record
-        record.ipnsName = newIpnsName;
-        record.ipnsId = newIpnsId;
-        record.timestamp = block.timestamp;
-
-        // Add new IPNS ID mapping
-        ipnsToRecordId[newIpnsId] = recordId;
-
-        emit RecordUpdated(recordId, newIpnsName, newIpnsId);
+        emit DeviceRegistered(workflowId, walletId, msg.sender);
     }
 
-    function deactivateRecord(uint256 recordId) external {
-        require(
-            recordId > 0 && recordId <= _recordCounter,
-            "Invalid record ID"
-        );
-        MetadataRecord storage record = records[recordId];
-        require(record.active, "Record already deactivated");
-        require(
-            record.controller == msg.sender || owner() == msg.sender,
-            "Not authorized"
-        );
+    function submitRecord(string calldata walletId, uint256 workflowId)
+        external
+        nonReentrant
+        returns (uint256)
+    {
+        if (!registeredDevices[walletId]) {
+            revert DeviceNotRegistered();
+        }
+        if (!workflowDevices[walletId][workflowId]) {
+            revert DeviceNotRegisteredForWorkflow();
+        }
+        if (!workflows[workflowId].active) {
+            revert WorkflowNotActive();
+        }
 
-        record.active = false;
-        delete ipnsToRecordId[record.ipnsId];
+        deviceExecutionCounter[walletId]++;
+        uint256 newCount = deviceExecutionCounter[walletId];
 
-        emit RecordDeactivated(recordId);
+        emit RecordUpdated(walletId, workflowId, newCount);
+        return newCount;
     }
 
-    function getRecord(
-        uint256 recordId
-    ) external view returns (MetadataRecord memory) {
-        require(
-            recordId > 0 && recordId <= _recordCounter,
-            "Invalid record ID"
-        );
-        return records[recordId];
+    function deactivateWorkflow(uint256 workflowId) external nonReentrant {
+        if (workflowId == 0 || workflowId > _workflowCounter) {
+            revert InvalidWorkflowId();
+        }
+
+        Workflow storage workflow = workflows[workflowId];
+
+        if (!workflow.active) {
+            revert WorkflowNotActive();
+        }
+        if (workflow.creator != msg.sender && owner() != msg.sender) {
+            revert NotAuthorized();
+        }
+
+        workflow.active = false;
+        delete ipnsToWorkflowId[workflow.ipnsId];
+        delete workflowIdToIpns[workflowId];
+
+        emit RecordDeactivated(workflowId, msg.sender);
     }
 
-    function getRecordByIpns(
-        string memory ipnsId
-    ) external view returns (MetadataRecord memory) {
-        uint256 recordId = ipnsToRecordId[ipnsId];
-        require(recordId > 0, "Record not found");
-        return records[recordId];
+    // View functions for better UX
+    function getWorkflowDevices(uint256 workflowId, address user)
+        external
+        view
+        returns (string[] memory)
+    {
+        return userWorkflowDevices[user][workflowId];
     }
 
-    function getRecordCount() external view returns (uint256) {
-        return _recordCounter;
+    function isDeviceRegistered(string calldata walletId)
+        external
+        view
+        returns (bool)
+    {
+        return registeredDevices[walletId];
     }
 }
