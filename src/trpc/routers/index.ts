@@ -7,29 +7,11 @@ import { encodeFunctionData } from "viem";
 import { PrivyClient } from "@privy-io/server-auth";
 import lighthouse from "@lighthouse-web3/sdk";
 import { RouterHelper } from "./helpers";
-
-const generateSlug = customAlphabet(
-  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
-  10
-);
-
-// Data collection input schema
-const DataCollectionInput = z.object({
-  deviceId: z.string(),
-  data: z.object({
-    temperature: z.number(),
-    humidity: z.number(),
-    timestamp: z.number(),
-  }),
-});
-
-const DeviceRegistrationInput = z.object({
-  workflowId: z.number(),
-});
-
-const WorkFlowCreationIput = z.object({
-  schemaID: z.string(),
-});
+import {
+  DataCollectionInput,
+  WorkFlowCreationIput,
+  DeviceRegistrationInput,
+} from "./types";
 
 export const appRouter = createTRPCRouter({
   executeWorkflow: baseProcedure
@@ -116,8 +98,8 @@ export const appRouter = createTRPCRouter({
   registerDevice: baseProcedure
     .input(DeviceRegistrationInput)
     .mutation(async ({ input }) => {
+      /* Sets Policy and Creates Server Wallet for Device */
       try {
-        // call privy api to create wallet
         const privy = new PrivyClient(
           process.env.PRIVY_APP_ID!,
           process.env.PRIVY_APP_SECRET!
@@ -138,9 +120,10 @@ export const appRouter = createTRPCRouter({
         };
 
         return {
+          walletId: walletId,
+          address: address,
           data: txData,
           contractAddress: process.env.REGISTRY_CONTRACT,
-          walletId: walletId,
         };
       } catch (error: any) {
         console.error("Device registration failed:", error);

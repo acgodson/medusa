@@ -1,12 +1,30 @@
 import { useState, useEffect } from "react";
-import { createPublicClient, getAddress, http } from "viem";
+import { createPublicClient, getAddress, http, getContract } from "viem";
 import { baseSepolia } from "viem/chains";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { trpc } from "@/trpc/client";
 import RegistryArtifacts from "../../contracts/artifacts/MedusaRegistry.json";
 
+interface Workflow {
+  id: number;
+  name: string;
+  description: string;
+  schema: string;
+  contributors: number;
+  totalExecutions: number;
+  creator: string;
+  active: boolean;
+  timestamp: number;
+  ipnsId: string;
+  ipnsName: string;
+  isContributor: boolean;
+  deviceIds: string[];
+}
+
 export const useWorkflow = () => {
-  const [fetchedWorkflows, setFetchedWorkflows] = useState<any | null>(null);
+  const [fetchedWorkflows, setFetchedWorkflows] = useState<Workflow[] | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const { ready: isReady } = usePrivy();
   const { wallets, ready } = useWallets();
@@ -14,6 +32,17 @@ export const useWorkflow = () => {
   const connectedWallet = wallets.find(
     (wallet) => wallet.walletClientType !== "privy"
   );
+
+  const publicClient = createPublicClient({
+    chain: baseSepolia,
+    transport: http(),
+  });
+
+  const contract = getContract({
+    address: process.env.NEXT_PUBLIC_REGISTRY_CONTRACT as `0x${string}`,
+    abi: RegistryArtifacts.abi,
+    client: { public: publicClient },
+  });
 
   const createWorkflow = trpc.createWorkflow.useMutation({
     onSuccess: (data) => {
@@ -34,8 +63,6 @@ export const useWorkflow = () => {
     });
 
     if (response && response.data.contractAddress) {
-      console.log("c address", response.data.contractAddress);
-      console.log("c address", response.data.data);
       const provider = await connectedWallet.getEthereumProvider();
       const transactionRequest = {
         to: getAddress(response.data.contractAddress),
@@ -55,28 +82,43 @@ export const useWorkflow = () => {
   const fetchWorkflows = async () => {
     setIsLoading(true);
 
-    const publicClient = createPublicClient({
-      chain: baseSepolia,
-      transport: http(),
-    });
-
     try {
-      const workflows = [];
+      const workflows: Workflow[] | any = [];
       // Fetch last 5 workflows
       for (let i = 5; i >= 1; i--) {
         try {
-          const workflow: any = await publicClient.readContract({
-            address: process.env.NEXT_PUBLIC_REGISTRY_CONTRACT as `0x${string}`,
-            abi: RegistryArtifacts.abi,
-            functionName: "workflows",
-            args: [i],
-          });
+          const workflowData: any = await contract.read.workflows([BigInt(i)]);
+
+          // Destructure array values with proper typing
+          const [
+            ipnsName,
+            ipnsId,
+            creator,
+            active,
+            contributorCount,
+            timestamp,
+          ] = workflowData;
 
           // Skip if workflow doesn't exist (all values are zero/empty)
-          if (!workflow[1] || workflow[1] === "") continue;
+          if (!ipnsId || ipnsId === "") continue;
+
+          // Only fetch user devices if wallet is connected
+          let userDevices: string[] | any = [];
+          if (connectedWallet && connectedWallet.address) {
+            // userDevices = await contract.read.userWorkflowDevices([
+            //   connectedWallet.address as `0x${string}`,
+            //   BigInt(i),
+            // ]);
+            userDevices = await publicClient.readContract({
+              address: getAddress(contract.address),
+              abi: contract.abi,
+              functionName: "getWorkflowDevices",
+              args: [BigInt(i), getAddress(connectedWallet.address)],
+            });
+          }
 
           // Fetch metadata from Lighthouse
-          const ipnsUrl = `http://gateway.lighthouse.storage/ipns/${workflow[1]}`;
+          const ipnsUrl = `http://gateway.lighthouse.storage/ipns/${ipnsId}`;
           const response = await fetch(ipnsUrl);
           const metadata = await response.json();
 
@@ -86,19 +128,22 @@ export const useWorkflow = () => {
             description:
               metadata.description || "Environment monitoring system",
             schema: "temp-humid-basic",
-            contributors: Number(workflow[4]),
+            contributors: Number(contributorCount),
             totalExecutions: 0,
-            creator: workflow[2],
-            active: workflow[3],
-            timestamp: Number(metadata.timestamp),
-            ipnsId: workflow[1],
-            ipnsName: workflow[0],
+            creator: creator,
+            active: active,
+            timestamp: Number(timestamp),
+            ipnsId: ipnsId,
+            ipnsName: ipnsName,
+            isContributor: userDevices.length > 0,
+            deviceIds: userDevices,
           });
         } catch (error) {
           console.error(`Error fetching workflow ${i}:`, error);
           continue;
         }
       }
+      console.log(workflows);
       setFetchedWorkflows(workflows);
     } catch (error) {
       console.error("Error fetching workflows:", error);
@@ -108,10 +153,10 @@ export const useWorkflow = () => {
   };
 
   useEffect(() => {
-    if (isReady && !fetchedWorkflows) {
+    if (isReady && !fetchedWorkflows && connectedWallet) {
       fetchWorkflows();
     }
-  }, [isReady, fetchedWorkflows]);
+  }, [isReady, fetchedWorkflows, connectedWallet]);
 
   return {
     fetchedWorkflows,

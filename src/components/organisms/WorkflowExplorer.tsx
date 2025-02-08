@@ -36,8 +36,14 @@ const WorkflowExplorer = () => {
 
   const handleJoinWorkflow = (workflowId: number) => {
     setSelectedWorkflow(workflowId);
-    setIsOpen(true);
+    if (selectedWorkflow === workflowId) {
+      setIsOpen(true);
+    }
   };
+
+  const selectedWorkflowData = fetchedWorkflows?.find(
+    (w: any) => w.id === selectedWorkflow
+  );
 
   return (
     <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
@@ -119,7 +125,7 @@ const WorkflowExplorer = () => {
 
       <JoinWorkflowDialog
         workflowId={selectedWorkflow}
-        workflowTitle={""}
+        workflowTitle={selectedWorkflowData?.name || ""}
         open={isOpen}
         onClose={() => setIsOpen(!isOpen)}
       />
