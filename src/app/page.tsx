@@ -1,15 +1,12 @@
-import { MedusaProvider } from "@/providers/MedusaProvider";
-import { DataCollectionTest } from "@/components/organisms/DataCollectionTest";
+import React, { useState } from "react";
+import WorkflowExplorer from "@/components/organisms/WorkflowExplorer";
 
-export default function Home() {
+const Home = () => {
   return (
-    <MedusaProvider>
-      <main className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">Medusa Test Dashboard</h1>
-        <div className="grid gap-4">
-          <DataCollectionTest />
-        </div>
-      </main>
-    </MedusaProvider>
+    <div className="w-full max-w-7xl mx-auto p-6 space-y-6">
+      <WorkflowExplorer />
+    </div>
   );
-}
+};
+
+export default Home;
