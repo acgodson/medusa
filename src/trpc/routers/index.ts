@@ -3,9 +3,6 @@ import { baseProcedure, createTRPCRouter } from "../init";
 import { customAlphabet } from "nanoid";
 import { MedusaBridge } from "@/lib/medusa/bridge/core";
 import { console } from "inspector";
-import { BroadcastingAgent } from "@/lib/medusa/agents/BroadcastingAgent";
-import { ResponseAgent } from "@/lib/medusa/agents/ResponseAgent";
-import RegistryArtifacts from "../../../contracts/artifacts/MedusaRegistry.json";
 
 const generateSlug = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
@@ -22,13 +19,10 @@ const DataCollectionInput = z.object({
   }),
 });
 
-const message = z.string();
-
 export const appRouter = createTRPCRouter({
-  collectData: baseProcedure
+  executeWorkflow: baseProcedure
     .input(DataCollectionInput)
     .mutation(async ({ input }) => {
-      console.log(input);
       try {
         const bridge = await MedusaBridge.connect({
           openAiKey: process.env.OPENAI_API_KEY!,
@@ -39,107 +33,12 @@ export const appRouter = createTRPCRouter({
           rpcUrl: process.env.RPC_URL!,
           lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
           adminPrivateKey: process.env.ADMIN_PRIVATE_KEY!,
-        });
-
-        // Execute data collection operation
-        const result = await bridge.executeOperation(
-          "zee.dataCollection.process",
-          {
-            deviceId: input.deviceId,
-            data: {
-              message: `Sensor data from device ${input.deviceId}`,
-              ...input.data,
-            },
-            message: `Sensor data from device ${input.deviceId}`,
-          }
-        );
-        return {
-          success: true,
-          result,
-        };
-      } catch (error: any) {
-        console.error("Error collecting data:", error);
-        throw new Error(`Failed to collect data: ${error.message}`);
-      }
-    }),
-
-  broadcast: baseProcedure
-    .input(
-      z.object({
-        signedData: z.string(),
-        signature: z.string(),
-        walletId: z.string(),
-        ipnsName: z.string().optional(),
-      })
-    )
-    .mutation(async ({ input }) => {
-      try {
-        const broadcaster = new BroadcastingAgent({
-          openAiKey: process.env.OPENAI_API_KEY!,
-          privyConfig: {
-            appId: process.env.PRIVY_APP_ID!,
-            appSecret: process.env.PRIVY_APP_SECRET!,
-          },
-          lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
-          rpcUrl: process.env.RPC_URL!,
           contractAddress: process.env.REGISTRY_CONTRACT as `0x${string}`,
-          adminPrivateKey: process.env.ADMIN_PRIVATE_KEY!,
         });
 
-        const result = await broadcaster.execute({
-          cid: "bafkreifrdlh6qnbv5iphiycwxifcsaniujv57v4xvfhkxbgyguzke5ylpa",
-          ipnsName: undefined,
-          //collectionResult.storageResult.cid,
-          // ipnsName: "bb0f2b2f341f4deabf8cf34decc3df01", //existingIpnsName, // optional
-        });
-
-        return {
-          success: true,
-          result,
-        };
-      } catch (error: any) {
-        console.error("Broadcasting failed:", error);
-        throw new Error(`Failed to broadcast: ${error.message}`);
-      }
-    }),
-
-  analyze: baseProcedure
-    .input(
-      z.object({
-        deviceId: z.string(),
-        data: z.object({
-          temperature: z.number(),
-          humidity: z.number(),
-          timestamp: z.number(),
-        }),
-        storageConfirmation: z.object({
-          cid: z.string(),
-          ipnsName: z.string(),
-        }),
-      })
-    )
-    .mutation(async ({ input }) => {
-      try {
-        const responseAgent = new ResponseAgent({
-          openAiKey: process.env.OPENAI_API_KEY!,
-          privyConfig: {
-            appId: process.env.PRIVY_APP_ID!,
-            appSecret: process.env.PRIVY_APP_SECRET!,
-          },
-          rpcUrl: process.env.RPC_URL!,
-        });
-
-        const TEST_IPNS_ID =
-          "k51qzi5uqu5dhkh74rjmge7wspk8p59vvqv9ls2sgzmgqo3w4izm1btp9qf5k5";
-
-        // Test data for the response agent
-        const result = await responseAgent.execute({
+        const result = await bridge.executeWorkflow({
           deviceId: input.deviceId,
           data: input.data,
-          storageConfirmation: {
-            ...input.storageConfirmation,
-            ipnsId: TEST_IPNS_ID,
-          },
         });
 
         return {
@@ -147,8 +46,8 @@ export const appRouter = createTRPCRouter({
           result,
         };
       } catch (error: any) {
-        console.error("Analysis failed:", error);
-        throw new Error(`Failed to analyze data: ${error.message}`);
+        console.error("Workflow execution failed:", error);
+        throw new Error(`Failed to execute workflow: ${error.message}`);
       }
     }),
 });

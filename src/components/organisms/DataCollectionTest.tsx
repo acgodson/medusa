@@ -9,7 +9,7 @@ export function DataCollectionTest() {
   const [humidity, setHumidity] = useState("");
   const [result, setResult] = useState<string>("");
 
-  const collectData = trpc.collectData.useMutation({
+  const collectData = trpc.executeWorkflow.useMutation({
     onSuccess: (data) => {
       setResult(
         `Data collection successful. Result: ${JSON.stringify(data.result)}`

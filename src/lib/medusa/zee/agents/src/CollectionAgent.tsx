@@ -1,7 +1,7 @@
-import { ZeeBaseAgent } from "./zee/base";
-import { createDataStorageTool, createPrivyWalletTool } from "./zee";
 import { PrivyClient } from "@privy-io/server-auth";
-import { PrivyWalletConfig } from "./zee/tools/privyWalletTool";
+import { ZeeBaseAgent } from "../base";
+import { createDataStorageTool, createPrivyWalletTool } from "../../tools";
+import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
 
 interface ToolCall {
   id: string;
@@ -11,13 +11,6 @@ interface ToolCall {
     arguments: string;
     parsed_arguments: Record<string, any>;
   };
-}
-
-interface Message {
-  role: "user" | "assistant" | "function";
-  content: string;
-  name?: string;
-  tool_calls?: ToolCall[];
 }
 
 interface SignatureResponse {

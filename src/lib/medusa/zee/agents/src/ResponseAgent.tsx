@@ -1,8 +1,6 @@
-import { ZeeBaseAgent } from "./zee/base";
-import { PrivyWalletConfig } from "./zee/tools/privyWalletTool";
-import { createProcessingTool, createSmartWalletTool } from "./zee";
-
-
+import { ZeeBaseAgent } from "../base";
+import { createProcessingTool, createSmartWalletTool } from "../../tools";
+import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
 
 export class ResponseAgent extends ZeeBaseAgent {
   private dataProcessor: ReturnType<typeof createProcessingTool>;
@@ -15,7 +13,8 @@ export class ResponseAgent extends ZeeBaseAgent {
     const CreateProcessingTool = createProcessingTool();
     super({
       name: "Response Agent",
-      description: "Agent for analyzing and inferring policies from sensor data",
+      description:
+        "Agent for analyzing and inferring policies from sensor data",
       instructions: [
         "When analyzing sensor data:",
         "1. Execute the data-processor tool with inferPolicy operation",
@@ -72,7 +71,10 @@ export class ResponseAgent extends ZeeBaseAgent {
         },
       });
 
-      console.log("Policy Analysis Result:", JSON.stringify(policyAnalysis, null, 2));
+      console.log(
+        "Policy Analysis Result:",
+        JSON.stringify(policyAnalysis, null, 2)
+      );
 
       // Execute conditions check directly
       console.log("Running conditions analysis...");
@@ -101,7 +103,10 @@ export class ResponseAgent extends ZeeBaseAgent {
         },
       });
 
-      console.log("Conditions Analysis Result:", JSON.stringify(conditionsAnalysis, null, 2));
+      console.log(
+        "Conditions Analysis Result:",
+        JSON.stringify(conditionsAnalysis, null, 2)
+      );
 
       // Combine results into final inference
       const inference = {
@@ -129,7 +134,8 @@ export class ResponseAgent extends ZeeBaseAgent {
       console.error("Response agent execution failed:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error occurred",
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
       };
     }
   }

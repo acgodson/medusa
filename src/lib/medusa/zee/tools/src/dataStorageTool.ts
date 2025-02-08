@@ -1,6 +1,6 @@
 import { createTool } from "@covalenthq/ai-agent-sdk";
 import lighthouse from "@lighthouse-web3/sdk";
-import { DataSchema } from "../types";
+import { DataSchema } from "../../types";
 
 export const createDataStorageTool = (lighthouseApiKey: string) =>
   createTool({

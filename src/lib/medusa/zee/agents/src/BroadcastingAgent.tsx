@@ -1,10 +1,10 @@
-import { ZeeBaseAgent } from "./zee/base";
-import { createIPNSTool, createSmartWalletTool } from "./zee";
-import { WalletBridge } from "../wallets/broadcast-server";
-import { PrivyWalletConfig } from "./zee/tools/privyWalletTool";
-import { encodeAbiParameters, encodeFunctionData } from "viem";
 import { PrivyClient } from "@privy-io/server-auth";
-import RegistryArtifacts from "../../../../contracts/artifacts/MedusaRegistry.json";
+import { encodeFunctionData } from "viem";
+import { createIPNSTool, createSmartWalletTool } from "../../tools/";
+import { ZeeBaseAgent } from "../base";
+import RegistryArtifacts from "../../../../../../contracts/artifacts/MedusaRegistry.json";
+import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
+import { WalletBridge } from "../../../wallets/broadcast-server";
 
 export class BroadcastingAgent extends ZeeBaseAgent {
   private privyWalletBridge: WalletBridge;

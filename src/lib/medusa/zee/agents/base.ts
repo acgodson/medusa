@@ -1,5 +1,5 @@
-import { Agent as ZeeAgent, createTool } from "@covalenthq/ai-agent-sdk";
-import type { AgentConfig, BaseAgent, AgentStateParams } from "./types";
+import { Agent as ZeeAgent } from "@covalenthq/ai-agent-sdk";
+import type { AgentConfig, BaseAgent, AgentStateParams } from "../types";
 
 export abstract class ZeeBaseAgent implements BaseAgent {
   protected zeeAgent: ZeeAgent;
