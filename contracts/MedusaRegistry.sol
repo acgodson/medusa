@@ -39,7 +39,7 @@ contract MedusaRegistry is Ownable {
     ) external returns (uint256) {
         require(bytes(ipnsName).length > 0, "Invalid IPNS name");
         require(bytes(ipnsId).length > 0, "Invalid IPNS ID");
-        require(ipnsToRecordId[ipnsId] == 0, "IPNS ID already registered");
+        // require(ipnsToRecordId[ipnsId] == 0, "IPNS ID already registered");
 
         _recordCounter++;
         uint256 newRecordId = _recordCounter;
