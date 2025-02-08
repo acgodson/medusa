@@ -63,7 +63,6 @@ export const createIPNSTool = (lighthouseApiKey: string) =>
             }
 
             const publishData = await pubResponse.json();
-            // console.log("Publish response:", publishData);
 
             return JSON.stringify({
               success: true,

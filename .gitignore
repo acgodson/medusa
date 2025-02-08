@@ -44,3 +44,4 @@ contracts/artifacts/MedusaRegistry_metadata.json
 contracts/artifacts/build-info
 contracts/.states
 contracts/.deps
+contracts/.prettierrc.json

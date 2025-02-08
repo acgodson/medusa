@@ -2,7 +2,11 @@ import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "../init";
 import { customAlphabet } from "nanoid";
 import { MedusaBridge } from "@/lib/medusa/bridge/core";
-import { console } from "inspector";
+import RegistryArtifacts from "../../../contracts/artifacts/MedusaRegistry.json";
+import { encodeFunctionData } from "viem";
+import { PrivyClient } from "@privy-io/server-auth";
+import lighthouse from "@lighthouse-web3/sdk";
+import { RouterHelper } from "./helpers";
 
 const generateSlug = customAlphabet(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
@@ -17,6 +21,14 @@ const DataCollectionInput = z.object({
     humidity: z.number(),
     timestamp: z.number(),
   }),
+});
+
+const DeviceRegistrationInput = z.object({
+  workflowId: z.number(),
+});
+
+const WorkFlowCreationIput = z.object({
+  schemaID: z.string(),
 });
 
 export const appRouter = createTRPCRouter({
@@ -48,6 +60,91 @@ export const appRouter = createTRPCRouter({
       } catch (error: any) {
         console.error("Workflow execution failed:", error);
         throw new Error(`Failed to execute workflow: ${error.message}`);
+      }
+    }),
+
+  createWorkflow: baseProcedure
+    .input(WorkFlowCreationIput)
+    .mutation(async ({ input }) => {
+      try {
+        const schema = {
+          title: "",
+          description: "",
+          //TODO, other members and context of the schema filled up from frontend
+          items: [],
+        };
+        const dataToUpload = JSON.stringify({
+          ...schema,
+          timestamp: Date.now(),
+        }); // Upload to Lighthouse
+        console.log("Attempting upload to Lighthouse...");
+        const uploadResponse = await lighthouse.uploadText(
+          dataToUpload,
+          process.env.LIGHTHOUSE_API_KEY!,
+          undefined
+        );
+        if (!uploadResponse?.data?.Hash) {
+          console.error("Invalid upload response:", uploadResponse);
+          throw new Error("Upload failed: No hash returned from Lighthouse");
+        }
+        const cid = uploadResponse.data.Hash;
+
+        const ipnsHelper = new RouterHelper(process.env.LIGHTHOUSE_API_KEY!);
+
+        const result = await ipnsHelper.handleIpnsOperations(cid);
+        console.log(result);
+
+        const data = encodeFunctionData({
+          abi: RegistryArtifacts.abi,
+          functionName: "createWorkflow",
+          args: [result.ipnsName, result.ipnsId],
+        });
+        const txData = {
+          contractAddress: process.env.REGISTRY_CONTRACT,
+          data,
+        };
+        return {
+          data: txData,
+          contractAddress: process.env.REGISTRY_CONTRACT,
+        };
+      } catch (error: any) {
+        console.error("Device registration failed:", error);
+        throw new Error(`Failed to register device: ${error.message}`);
+      }
+    }),
+
+  registerDevice: baseProcedure
+    .input(DeviceRegistrationInput)
+    .mutation(async ({ input }) => {
+      try {
+        // call privy api to create wallet
+        const privy = new PrivyClient(
+          process.env.PRIVY_APP_ID!,
+          process.env.PRIVY_APP_SECRET!
+        );
+
+        const { id: walletId, address } = await privy.walletApi.create({
+          chainType: "ethereum",
+        });
+
+        const data = encodeFunctionData({
+          abi: RegistryArtifacts.abi,
+          functionName: "registerDevice",
+          args: [input.workflowId, walletId],
+        });
+        const txData = {
+          contractAddress: process.env.REGISTRY_CONTRACT,
+          data,
+        };
+
+        return {
+          data: txData,
+          contractAddress: process.env.REGISTRY_CONTRACT,
+          walletId: walletId,
+        };
+      } catch (error: any) {
+        console.error("Device registration failed:", error);
+        throw new Error(`Failed to register device: ${error.message}`);
       }
     }),
 });

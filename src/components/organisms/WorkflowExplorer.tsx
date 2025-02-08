@@ -8,20 +8,72 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/atoms/tabs";
-import { Input } from "@/components/atoms/input";
 import { Button } from "@/components/atoms/button";
 import ExplorerSearch from "../molecules/ExplorerSearch";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { trpc } from "@/trpc/client";
+import { useEthContext } from "@/providers/EthContext";
+import { useAuthenticatedAction } from "@/hooks/useAuth";
+import { JoinWorkflowDialog } from "../molecules/joinWorkflowDialog";
 
 const WorkflowExplorer = () => {
-  const [gatewayUrl, setGatewayUrl] = useState(
-    "https://default-gateway.medusa.network"
-  );
+  const { withAuth } = useAuthenticatedAction();
   const [viewMode, setViewMode] = useState("grid");
+  const { handleLogin } = useEthContext();
+  const { authenticated, sendTransaction, signTransaction } = usePrivy();
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedWorkflow, setSelectedWorkflow] = useState<number>(0);
+  const { wallets } = useWallets();
+  const connectedWallet = wallets.find((wallet) => wallet.type === "ethereum");
+
+  const createWorkflow = trpc.createWorkflow.useMutation({
+    onSuccess: (data) => {
+      console.log("Device registered:", data);
+    },
+    onError: (error) => {
+      console.error("Registration failed:", error);
+    },
+  });
+
+  const handleSubmit = async () => {
+    if (!connectedWallet) return;
+
+    const response: any = createWorkflow.mutate({
+      schemaID: "",
+    });
+
+    if (response) {
+      const provider = await connectedWallet.getEthereumProvider();
+      const transactionRequest = {
+        to: response.contractAddress,
+        data: response.data,
+        value: 0,
+      };
+      const transactionHash = await provider.request({
+        method: "eth_sendTransaction",
+        params: [transactionRequest],
+      });
+
+      console.log(transactionHash);
+    }
+  };
+
+  const handleDeployWorkflow = () => {
+    withAuth(handleSubmit);
+  };
+
+  const handleJoinWorkflow = (workflowId: number) => {
+    setSelectedWorkflow(workflowId);
+    setIsOpen(true);
+    //   // Your join workflow logic here
+    //   console.log("Joining workflow:", workflowId);
+    // });
+  };
 
   // Sample active workflows
   const sampleWorkflows = [
     {
-      id: "weather-mon-001",
+      id: 1,
       name: "Global Weather Monitoring",
       description: "Collaborative weather data collection network",
       schema: "temp-humid-basic",
@@ -30,7 +82,7 @@ const WorkflowExplorer = () => {
       creator: "0x742...3ab4",
     },
     {
-      id: "city-sens-002",
+      id: 2,
       name: "City Sensor Network",
       description: "Urban environment monitoring system",
       schema: "temp-humid-basic",
@@ -141,6 +193,7 @@ const WorkflowExplorer = () => {
                       <Button
                         variant="outline"
                         className="w-full hover:bg-[#E6B24B]/10"
+                        onClick={() => handleJoinWorkflow(workflow.id)}
                       >
                         Join Workflow
                       </Button>
@@ -202,6 +255,8 @@ const WorkflowExplorer = () => {
                       <Button
                         variant="outline"
                         className="w-full hover:bg-[#E6B24B]/10"
+                        onClick={handleDeployWorkflow}
+                        disabled={createWorkflow.isPending}
                       >
                         Deploy Using Schema
                       </Button>
@@ -213,6 +268,13 @@ const WorkflowExplorer = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <JoinWorkflowDialog
+        workflowId={selectedWorkflow}
+        workflowTitle={""}
+        open={isOpen}
+        onClose={() => setIsOpen(!isOpen)}
+      />
     </div>
   );
 };

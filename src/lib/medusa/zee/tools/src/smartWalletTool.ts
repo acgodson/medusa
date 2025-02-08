@@ -31,8 +31,6 @@ export const createSmartWalletTool = (walletBridge: WalletBridge) =>
           throw new Error("Transaction data required for broadcast");
         }
 
-        
-
         const txHash = await walletBridge.executeOperation(
           params.walletId,
           params.txData.contractAddress as Hex,

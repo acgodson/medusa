@@ -14,6 +14,7 @@
     "@lighthouse-web3/sdk": "^0.3.7",
     "@privy-io/react-auth": "^2.2.1",
     "@privy-io/server-auth": "^1.18.4",
+    "@privy-io/wagmi": "^1.0.3",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-dropdown-menu": "^2.1.4",
     "@radix-ui/react-icons": "^1.1.1",
