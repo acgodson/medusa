@@ -17,7 +17,7 @@ interface MedusaWorkflowState {
       }>
     | any[];
   status: "idle" | "running" | "paused" | "failed" | "finished";
-  children: MedusaWorkflowState[]; // Make children required, not optional
+  children: MedusaWorkflowState[];
 }
 
 export class MedusaBridge {
