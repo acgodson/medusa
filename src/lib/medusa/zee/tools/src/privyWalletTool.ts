@@ -48,7 +48,6 @@ export const createPrivyWalletTool = (privy: PrivyClient, walletId: string) =>
               walletId: activeWallet.id,
               message: params.message,
             });
-            console.log("Sign result:", signResult);
 
             const response = JSON.stringify({
               signature: signResult.signature,

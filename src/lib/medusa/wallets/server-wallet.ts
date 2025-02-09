@@ -59,9 +59,9 @@ export class ServerWallet {
         to: contractAddress,
         data: data,
         chainId: baseSepolia.id,
-        maxFeePerGas: "0x174876E800",
-        maxPriorityFeePerGas: "0xBA43B7400",
-        gasLimit: "0xF4240",
+        maxFeePerGas: "0x59682F00", // 1.5 Gwei
+        maxPriorityFeePerGas: "0x3B9ACA00", // 1 Gwei
+        gasLimit: "0x2DC6C0",
         value: 0,
         nonce: `0x${nonce.toString(16)}`,
       },
