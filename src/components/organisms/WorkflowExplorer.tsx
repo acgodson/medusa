@@ -103,6 +103,7 @@ const WorkflowExplorer = () => {
                     workflow={workflow}
                     handleJoinWorkflow={handleJoinWorkflow}
                     isPending={createWorkflow.isPending}
+                    isListView={viewMode !== "grid"}
                   />
                 ))
               )}

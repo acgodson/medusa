@@ -1,13 +1,13 @@
 import { PrivyClient } from "@privy-io/server-auth";
 import { encodeFunctionData } from "viem";
-import { createIPNSTool, createSmartWalletTool } from "../../tools/";
+import { createIPNSTool, createServerWalletTool } from "../../tools/";
 import { ZeeBaseAgent } from "../base";
 import RegistryArtifacts from "../../../../../../contracts/artifacts/MedusaRegistry.json";
 import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
-import { WalletBridge } from "../../../wallets/broadcast-server";
+import { ServerWallet } from "../../../wallets/server-wallet";
 
 export class BroadcastingAgent extends ZeeBaseAgent {
-  private privyWalletBridge: WalletBridge;
+  private privyServerWallet: ServerWallet;
   public contractAddress: `0x${string}`;
   constructor(config: {
     openAiKey: string;
@@ -15,17 +15,15 @@ export class BroadcastingAgent extends ZeeBaseAgent {
     lighthouseApiKey: string;
     rpcUrl: string;
     contractAddress: `0x${string}`;
-    adminPrivateKey: string;
   }) {
-    const walletBridge = new WalletBridge(
+    const serverWallet = new ServerWallet(
       config.privyConfig.appId,
       config.privyConfig.appSecret,
-      config.rpcUrl,
-      config.adminPrivateKey
+      config.rpcUrl
     );
 
     const CreateIPNSTool = createIPNSTool(config.lighthouseApiKey);
-    const CreateSmartWalletTool = createSmartWalletTool(walletBridge);
+    const CreateSmartWalletTool = createServerWalletTool(serverWallet);
 
     super({
       name: "Storage Broadcaster Agent",
@@ -41,31 +39,13 @@ export class BroadcastingAgent extends ZeeBaseAgent {
       openAiKey: config.openAiKey,
     });
 
-    this.privyWalletBridge = walletBridge;
+    this.privyServerWallet = serverWallet;
     this.contractAddress = config.contractAddress;
   }
 
-  private async handleIpnsOperations(cid: string, ipnsName?: string) {
+  private async handleIpnsOperations(cid: string, ipnsName: string) {
     try {
-      // Generate IPNS key if not provided
-      if (!ipnsName) {
-        console.log("No IPNS name provided, generating new key...");
-        const keyResult = await this.zeeAgent.tools?.["storage"].execute({
-          operation: "generateKey",
-        });
-
-        console.log("Key generation result:", keyResult);
-
-        // Parse and verify the key response
-        const parsed = JSON.parse(keyResult);
-        if (!parsed?.data?.ipnsName) {
-          console.error("Invalid key generation response:", parsed);
-          throw new Error("Failed to generate IPNS key: Invalid response");
-        }
-        ipnsName = parsed.data.ipnsName;
-      }
-
-      console.log("Publishing to IPNS with:", { cid, ipnsName });
+      console.log("updating IPNS data:", { cid, ipnsName });
 
       // Publish to IPNS
       const publishResult = await this.zeeAgent.tools?.["storage"].execute({
@@ -76,7 +56,7 @@ export class BroadcastingAgent extends ZeeBaseAgent {
 
       console.log("Publish result:", publishResult);
 
-      // Verify publish response
+      //  Verify publish response
       const publishResponse = JSON.parse(publishResult);
       if (publishResponse.error) {
         throw new Error(`Publish failed: ${publishResponse.error}`);
@@ -98,28 +78,21 @@ export class BroadcastingAgent extends ZeeBaseAgent {
     }
   }
 
-  private async getOrCreateWallet(privy: PrivyClient) {
+  private async getWallet(privy: PrivyClient, id: string) {
     const wallets = await privy.walletApi.getWallets({
       chainType: "ethereum",
     });
-    return (
-      wallets.data[0] ||
-      (await privy.walletApi.create({ chainType: "ethereum" }))
-    );
+    return wallets.data.find((wallet) => wallet.id === id);
   }
 
-  private async registerOnChain(
-    walletId: string,
-    ipnsName: string,
-    ipnsId: string
-  ) {
+  private async registerOnChain(walletId: string, workflowId: string) {
     try {
       console.log("Registering metadata on-chain...");
 
       const data = encodeFunctionData({
         abi: RegistryArtifacts.abi,
-        functionName: "createRecord",
-        args: [ipnsName, ipnsId],
+        functionName: "submitRecord",
+        args: [walletId, workflowId],
       });
 
       // Execute contract call via smart wallet
@@ -144,21 +117,24 @@ export class BroadcastingAgent extends ZeeBaseAgent {
     }
   }
 
-  async execute(params: { cid: string; ipnsName?: string }): Promise<{
+  async execute(params: {
+    cid: string;
+    walletId: string;
+    ipnsName: string;
+    workflowId: string;
+  }): Promise<{
     success: boolean;
-    cid?: string;
-    ipnsName?: string;
     ipnsGatewayUrl?: string;
     transactionHash?: string;
     error?: string;
   }> {
     try {
       // Validate input
-      if (!params.cid) {
-        throw new Error("No CID provided for IPNS operation");
+      if (!params.cid || !params.ipnsName) {
+        throw new Error("No CID or IPNS provided for operation");
       }
 
-      console.log("Starting IPNS operations for CID:", params.cid);
+      console.log("Workflow IPNS operations for CID:", params.cid);
 
       // Handle IPNS operations
       const { ipnsName, ipnsId } = await this.handleIpnsOperations(
@@ -166,22 +142,23 @@ export class BroadcastingAgent extends ZeeBaseAgent {
         params.ipnsName
       );
 
-      const activeWallet = await this.getOrCreateWallet(
-        this.privyWalletBridge.privy
+      const activeWallet = await this.getWallet(
+        this.privyServerWallet.privy,
+        params.walletId
       );
       console.log("Active wallet:", activeWallet);
+
+      if (!activeWallet) {
+        throw new Error("Unable to fetch server wallet");
+      }
 
       // Register metadata on-chain
       const txHash = await this.registerOnChain(
         activeWallet.id,
-        ipnsName as string,
-        ipnsId
+        params.workflowId
       );
-
       return {
         success: true,
-        cid: params.cid,
-        ipnsName,
         ipnsGatewayUrl: `https://gateway.lighthouse.storage/ipns/${ipnsId}`,
         transactionHash: txHash,
       };

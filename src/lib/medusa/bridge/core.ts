@@ -3,23 +3,21 @@ import {
   BroadcastingAgent,
   ResponseAgent,
 } from "../zee/agents";
-import { WalletBridge } from "../wallets/broadcast-server";
+import { ServerWallet } from "../wallets/server-wallet";
 import { PrivyWalletConfig } from "../zee/tools/src/privyWalletTool";
 import { ZeeWorkflow } from "@covalenthq/ai-agent-sdk";
 
 interface MedusaWorkflowState {
-  dataCollectionStatus: "idle" | "collecting" | "processing" | "complete";
-  broadcastStatus: "idle" | "broadcasting" | "complete";
-  analyticsStatus: "idle" | "analyzing" | "complete";
-  collectionResult?: any;
-  broadcastResult?: any;
-  analysisResult?: any;
+  agent: string;
+  messages: any[];
+  status: "idle" | "running" | "paused" | "failed" | "finished";
+  children?: MedusaWorkflowState[];
 }
 
 export class MedusaBridge {
   private static instance: MedusaBridge;
   private agents: Map<string, any> = new Map();
-  private walletBridge: WalletBridge;
+  private serverWallet: ServerWallet;
   private workflow: ZeeWorkflow;
 
   private constructor(
@@ -30,19 +28,17 @@ export class MedusaBridge {
       lighthouseApiKey: string;
       adminPrivateKey: string;
       contractAddress: `0x${string}`;
+      walletId: string;
     }
   ) {
-    this.walletBridge = new WalletBridge(
+    this.serverWallet = new ServerWallet(
       config.privyConfig.appId,
       config.privyConfig.appSecret,
-      config.rpcUrl,
-      config.adminPrivateKey
+      config.rpcUrl
     );
 
-    // Initialize all agents
     this.initializeAgents();
 
-    // Create workflow
     this.workflow = new ZeeWorkflow({
       description: "Medusa data processing and analysis workflow",
       output: "Process and analyze sensor data with storage confirmation",
@@ -55,17 +51,16 @@ export class MedusaBridge {
   }
 
   private initializeAgents() {
-    // Data Collection Agent
     this.agents.set(
       "dataCollection",
       new CollectionAgent({
         openAiKey: this.config.openAiKey,
         privyConfig: this.config.privyConfig,
         lighthouseApiKey: this.config.lighthouseApiKey,
+        walletId: this.config.walletId,
       })
     );
 
-    // Broadcasting Agent
     this.agents.set(
       "broadcasting",
       new BroadcastingAgent({
@@ -74,11 +69,9 @@ export class MedusaBridge {
         lighthouseApiKey: this.config.lighthouseApiKey,
         rpcUrl: this.config.rpcUrl,
         contractAddress: this.config.contractAddress,
-        adminPrivateKey: this.config.adminPrivateKey,
       })
     );
 
-    // Response Agent
     this.agents.set(
       "response",
       new ResponseAgent({
@@ -96,31 +89,34 @@ export class MedusaBridge {
     lighthouseApiKey: string;
     adminPrivateKey: string;
     contractAddress: `0x${string}`;
+    walletId: string;
   }) {
     if (!MedusaBridge.instance) {
       MedusaBridge.instance = new MedusaBridge(config);
     }
     return MedusaBridge.instance;
   }
-
   async executeWorkflow(params: {
     deviceId: string;
+    workflowId: string;
     data: {
       temperature: number;
       humidity: number;
       timestamp: number;
     };
+    contractAddress: string; // Added missing parameter
   }) {
     try {
-      // Create initial workflow state
-      const initialState = {
+      const initialState: MedusaWorkflowState = {
         agent: "collector",
         messages: [
           {
-            role: "function" as const,
-            name: "default",
+            role: "function",
+            name: "workflow_init",
             content: JSON.stringify({
               deviceId: params.deviceId,
+              workflowId: params.workflowId,
+              contractAddress: params.contractAddress,
               data: {
                 message: `Sensor data from device ${params.deviceId}`,
                 ...params.data,
@@ -128,13 +124,14 @@ export class MedusaBridge {
             }),
           },
         ],
-        status: "idle" as const,
-        children: [],
+        status: "idle",
       };
 
-      // Execute Collection
+      console.log("Starting data collection...");
       const collectionResult = await this.agents.get("dataCollection").execute({
         deviceId: params.deviceId,
+        workflowId: params.workflowId,
+        contractAddress: params.contractAddress,
         data: {
           message: `Sensor data from device ${params.deviceId}`,
           ...params.data,
@@ -145,48 +142,60 @@ export class MedusaBridge {
         throw new Error("Data collection failed");
       }
 
-      // Execute Broadcasting with collection results
+      console.log("Starting data broadcasting...");
       const broadcastResult = await this.agents.get("broadcasting").execute({
         cid: collectionResult.storageResult.cid,
+        walletId: params.deviceId,
+        ipnsName: collectionResult.storageResult.ipnsName,
+        workflowId: params.workflowId,
+        contractAddress: params.contractAddress,
       });
 
       if (!broadcastResult.success) {
         throw new Error("Broadcasting failed");
       }
 
-      // Execute Analysis with all previous results
+      console.log("Starting data analysis...");
       const analysisResult = await this.agents.get("response").execute({
         deviceId: params.deviceId,
+        workflowId: params.workflowId,
         data: params.data,
+        contractAddress: params.contractAddress,
         storageConfirmation: {
           cid: collectionResult.storageResult.cid,
           ipnsId: broadcastResult.ipnsGatewayUrl.split("/ipns/")[1],
         },
       });
 
-      // Execute workflow with all context
-      const workflowResult = await ZeeWorkflow.run(this.workflow, {
+      const workflowState: MedusaWorkflowState | any = {
         ...initialState,
+        status: "running",
         messages: [
+          ...initialState.messages,
           {
-            role: "function" as const,
-            name: "collector",
+            role: "function",
+            name: "data_collection",
             content: JSON.stringify(collectionResult),
           },
           {
-            role: "function" as const,
-            name: "broadcaster",
+            role: "function",
+            name: "data_broadcast",
             content: JSON.stringify(broadcastResult),
           },
           {
-            role: "function" as const,
-            name: "analyzer",
+            role: "function",
+            name: "data_analysis",
             content: JSON.stringify(analysisResult),
           },
-        ],
-      });
+        ] as any[],
+      };
 
-      // Return combined results
+      console.log("Executing complete workflow...");
+      const workflowResult = await ZeeWorkflow.run(
+        this.workflow,
+        workflowState
+      );
+
       return {
         success: true,
         workflow: {
@@ -205,8 +214,6 @@ export class MedusaBridge {
       };
     }
   }
-
-  // Legacy support for individual operations
   async executeOperation(operation: string, params: any) {
     const [system, agentType, action] = operation.split(".");
 
@@ -219,7 +226,7 @@ export class MedusaBridge {
         return agent.execute(params);
 
       case "cdp":
-        return this.walletBridge.executeOperation(
+        return this.serverWallet.executeOperation(
           params.walletId,
           params.contractAddress,
           params.data
@@ -230,3 +237,5 @@ export class MedusaBridge {
     }
   }
 }
+
+export type { MedusaWorkflowState };

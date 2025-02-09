@@ -13,16 +13,15 @@ export const WalletSchema = z.object({
   message: z.string(),
 });
 
-async function getOrCreateWallet(privy: PrivyClient) {
+// This is basically just get, stopped creating after testing would soon delete
+async function getOrCreateWallet(privy: PrivyClient, id: string) {
   const wallets = await privy.walletApi.getWallets({
     chainType: "ethereum",
   });
-  return (
-    wallets.data[0] || (await privy.walletApi.create({ chainType: "ethereum" }))
-  );
+  return wallets.data.find((wallet) => wallet.id === id);
 }
 
-export const createPrivyWalletTool = (privy: PrivyClient) =>
+export const createPrivyWalletTool = (privy: PrivyClient, walletId: string) =>
   createTool({
     id: "privy-wallet",
     description:
@@ -32,8 +31,12 @@ export const createPrivyWalletTool = (privy: PrivyClient) =>
       console.log("Privy tool executing with params:", params);
       try {
         // If wallet isn't provided, try to get or create one
-        const activeWallet = await getOrCreateWallet(privy);
+        const activeWallet = await getOrCreateWallet(privy, walletId);
         console.log("Active wallet:", activeWallet);
+
+        if (!activeWallet) {
+          throw new Error("Unable to fetch server wallet");
+        }
 
         switch (params.operation) {
           case "sign":

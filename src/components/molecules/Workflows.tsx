@@ -9,6 +9,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { Card, CardHeader, CardContent, Button, Spinner } from "../atoms";
+import { SubmitRecordDialog } from "./submitRecordDialog";
+import { Tooltip } from "../atoms/tooltip";
 
 const Workflows = ({
   workflow,
@@ -22,9 +24,16 @@ const Workflows = ({
   isListView?: boolean;
 }) => {
   const [showDevices, setShowDevices] = useState(false);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [gatewayUrl, setGatewayUrl] = useState(
     "https://default-gateway.medusa.network"
   );
+
+  const handleSubmitRecord = (deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+    setSubmitDialogOpen(true);
+  };
 
   return (
     <>
@@ -51,14 +60,14 @@ const Workflows = ({
         </CardHeader>
 
         <CardContent className={isListView ? "flex-1" : ""}>
-          <div className="space-y-4 relative">
+          <div className={"space-y-4 relative pt-2"}>
             <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2`}>
                 <Users className="h-4 w-4 text-[#E6B24B]" />
                 <span>{workflow.contributors} contributors</span>
               </div>
               <div className="text-gray-500">
-                {workflow.totalExecutions} executions
+                {workflow.totalExecutions} <Tooltip>executions</Tooltip>
               </div>
             </div>
 
@@ -99,7 +108,7 @@ const Workflows = ({
                   <div key={index} className="p-3 bg-gray-50/50 rounded-lg">
                     <div className="flex justify-between items-center">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center w-full gap-2">
                           <p className="text-sm font-medium truncate">
                             {deviceId}
                           </p>
@@ -128,6 +137,7 @@ const Workflows = ({
                               size="sm"
                               variant="outline"
                               className="text-xs"
+                              onClick={() => handleSubmitRecord(deviceId)}
                             >
                               <Play className="h-3 w-3 mr-1" />
                               Submit Record
@@ -146,7 +156,11 @@ const Workflows = ({
                             <Button size="sm" variant="outline">
                               0
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleSubmitRecord(deviceId)}
+                            >
                               <Play className="h-3 w-3" />
                             </Button>
                             <Button size="sm" variant="outline">
@@ -172,6 +186,13 @@ const Workflows = ({
             )}
           </div>
         </CardContent>
+
+        <SubmitRecordDialog
+          open={submitDialogOpen}
+          onClose={() => setSubmitDialogOpen(false)}
+          deviceId={selectedDeviceId}
+          workflowTitle={workflow.name}
+        />
       </Card>
     </>
   );

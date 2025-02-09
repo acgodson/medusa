@@ -1,6 +1,9 @@
 import { createTool } from "@covalenthq/ai-agent-sdk";
 import lighthouse from "@lighthouse-web3/sdk";
 import { DataSchema } from "../../types";
+import { createPublicClient, getAddress, http } from "viem";
+import RegistryArtifacts from "../../../../../../contracts/artifacts/MedusaRegistry.json";
+import { baseSepolia } from "viem/chains";
 
 export const createDataStorageTool = (lighthouseApiKey: string) =>
   createTool({
@@ -13,14 +16,49 @@ export const createDataStorageTool = (lighthouseApiKey: string) =>
         if (!params.data) {
           throw new Error("No data provided for storage");
         }
+        const publicClient = createPublicClient({
+          chain: baseSepolia,
+          transport: http(
+            `https://api.developer.coinbase.com/rpc/v1/base-sepolia/${process.env.NEXT_PUBLIC_COINBASE_RPC}`
+          ),
+        });
 
-        console.log("Starting data storage process with Lighthouse...");
+        const workflow: any = await publicClient.readContract({
+          address: getAddress(params.contractAddress),
+          abi: RegistryArtifacts.abi,
+          functionName: "workflows",
+          args: [params.id],
+        });
+
+        if (!workflow) {
+          throw new Error("Smart Contract Error");
+        }
+
+        // Retreiving ipnsName from smart contract
+        console.log("Starting retrieval from Lighthouse...");
+        const ipnsId = workflow[1];
+        const ipnsName = workflow[0];
+
+        const ipnsUrl = `http://gateway.lighthouse.storage/ipns/${ipnsId}}`;
+        const response = await fetch(ipnsUrl);
+        const metadata = await response.json();
+
+        const newData = {
+          ...metadata,
+          items: [
+            {
+              ...params.data,
+              timestamp: Date.now(),
+              count: metadata.items.length + 1,
+            },
+            ...metadata.items,
+          ],
+        };
+
+        console.log("Starting storage update process with Lighthouse...");
 
         // Prepare data for upload
-        const dataToUpload = JSON.stringify({
-          ...params.data,
-          timestamp: Date.now(),
-        });
+        const dataToUpload = JSON.stringify(newData);
 
         // Upload to Lighthouse
         console.log("Attempting upload to Lighthouse...");
@@ -40,9 +78,9 @@ export const createDataStorageTool = (lighthouseApiKey: string) =>
         return JSON.stringify({
           success: true,
           data: params.data,
-          timestamp: Date.now(),
           cid: uploadResponse.data.Hash,
-          gateway: `https://gateway.lighthouse.storage/ipfs/${uploadResponse.data.Hash}`,
+          ipnsName: ipnsName,
+          ipnsId: ipnsId,
         });
       } catch (error: any) {
         console.error("Storage tool error:", error);

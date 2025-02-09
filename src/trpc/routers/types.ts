@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const DataCollectionInput = z.object({
   deviceId: z.string(),
+  workflowId: z.string(),
   data: z.object({
     temperature: z.number(),
     humidity: z.number(),

@@ -1,5 +1,9 @@
+
+// checks
+//
+
 import { ZeeBaseAgent } from "../base";
-import { createProcessingTool, createSmartWalletTool } from "../../tools";
+import { createProcessingTool } from "../../tools";
 import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
 
 export class ResponseAgent extends ZeeBaseAgent {
@@ -42,6 +46,7 @@ export class ResponseAgent extends ZeeBaseAgent {
   }) {
     try {
       console.log("Starting inference for device:", params.deviceId);
+
       const gatewayUrl = `https://gateway.lighthouse.storage/ipns/${params.storageConfirmation.ipnsId}`;
 
       // Execute policy inference directly
@@ -50,6 +55,7 @@ export class ResponseAgent extends ZeeBaseAgent {
         operation: "inferPolicy",
         data: {
           deviceId: params.deviceId,
+          latestData: params.data,
           gatewayUrl,
           timestamp: Date.now(),
         },

@@ -27,28 +27,7 @@ export const createProcessingTool = () =>
       try {
         console.log("Processing with params:", params);
         console.log("Fetching data from:", params.data.gatewayUrl);
-
-        const response = await fetch(params.data.gatewayUrl);
-        if (!response.ok) {
-          throw new Error(
-            `IPNS fetch failed: ${response.status} ${response.statusText}`
-          );
-        }
-
-        // Mock data for fallback testing in case IPNS is not accessible
-        // const mockData = {
-        //   temperature: 32,
-        //   humidity: 75,
-        //   timestamp: Date.now(),
-        // };
-        // const sensorData = await response.json().catch(() => mockData);
-        const sensorData = await response.json();
-        console.log("Retrieved/Mock data:", sensorData);
-
-        const result = {
-          timestamp: Date.now(),
-          deviceId: params.data.deviceId,
-        };
+        const sensorData = params.latestData;
 
         if (params.operation === "inferPolicy") {
           return {

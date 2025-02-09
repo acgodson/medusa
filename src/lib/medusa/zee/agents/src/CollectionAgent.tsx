@@ -3,15 +3,15 @@ import { ZeeBaseAgent } from "../base";
 import { createDataStorageTool, createPrivyWalletTool } from "../../tools";
 import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
 
-interface ToolCall {
-  id: string;
-  type: "function";
-  function: {
-    name: string;
-    arguments: string;
-    parsed_arguments: Record<string, any>;
-  };
-}
+// interface ToolCall {
+//   id: string;
+//   type: "function";
+//   function: {
+//     name: string;
+//     arguments: string;
+//     parsed_arguments: Record<string, any>;
+//   };
+// }
 
 interface SignatureResponse {
   signature: string;
@@ -22,14 +22,18 @@ export class CollectionAgent extends ZeeBaseAgent {
   constructor(config: {
     openAiKey: string;
     lighthouseApiKey: string;
+    walletId: string;
     privyConfig: PrivyWalletConfig;
   }) {
+    // since already have a wallet id, our work here would first be to pass the  updated id
+
     const storageTool = createDataStorageTool(config.lighthouseApiKey);
+
     const privy = new PrivyClient(
       config.privyConfig.appId,
       config.privyConfig.appSecret
     );
-    const privyWalletTool = createPrivyWalletTool(privy);
+    const privyWalletTool = createPrivyWalletTool(privy, config.walletId);
 
     super({
       name: "Data Collection Agent",
@@ -158,7 +162,6 @@ export class CollectionAgent extends ZeeBaseAgent {
         success: true,
         signature: parsedResult.signature,
         storageResult: JSON.parse(storageResult),
-        method: "agent_execution",
       };
     } catch (error) {
       console.error("Data collection failed:", error);
@@ -170,3 +173,4 @@ export class CollectionAgent extends ZeeBaseAgent {
     }
   }
 }
+

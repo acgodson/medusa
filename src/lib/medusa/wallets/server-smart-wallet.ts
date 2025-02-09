@@ -8,7 +8,6 @@ import {
   SignableMessage,
   TypedDataDefinition,
   createPublicClient,
-  encodeAbiParameters,
   http,
   parseGwei,
 } from "viem";
@@ -24,7 +23,7 @@ interface ExtendedAccount extends LocalAccount {
   rawSign?: (message: Hex) => Promise<Hex>;
 }
 
-export class WalletBridge {
+export class ServerWallet {
   public privy: PrivyClient;
   private client: Client;
   private smartAccountPromise: Promise<any> | null = null;
@@ -230,16 +229,6 @@ export class WalletBridge {
         contractAddress,
         dataLength: data.length,
       });
-
-      // const userOp = await bundlerClient.sendUserOperation({
-      //   account: smartAccount,
-      //   calls: [{ to: contractAddress, data }],
-      //   maxFeePerGas,
-      //   maxPriorityFeePerGas,
-      //   callGasLimit,
-      //   verificationGasLimit,
-      //   preVerificationGas,
-      // });
 
       const preparedOp = await bundlerClient.prepareUserOperation({
         account: smartAccount,

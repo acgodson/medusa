@@ -28,11 +28,19 @@ export const appRouter = createTRPCRouter({
           lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
           adminPrivateKey: process.env.ADMIN_PRIVATE_KEY!,
           contractAddress: process.env.REGISTRY_CONTRACT as `0x${string}`,
+          walletId: input.deviceId,
+        });
+
+        console.log("Starting workflow execution with input:", {
+          ...input,
+          workflowId: input.workflowId,
         });
 
         const result = await bridge.executeWorkflow({
           deviceId: input.deviceId,
+          workflowId: input.workflowId,
           data: input.data,
+          contractAddress: process.env.REGISTRY_CONTRACT!,
         });
 
         return {
