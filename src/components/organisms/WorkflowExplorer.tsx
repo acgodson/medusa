@@ -67,7 +67,7 @@ const WorkflowExplorer = () => {
           <div className="relative p-8">
             <Tabs defaultValue="workflows" className="w-full">
               <div className="flex justify-between items-center mb-8">
-                <TabsList className="bg-white/80 backdrop-blur-xl border border-white/60 shadow-md p-1 rounded-xl">
+                <TabsList className="bg-white/80 backdrop-blur-md border border-white/60 shadow-md p-1 rounded-xl">
                   <TabsTrigger
                     value="workflows"
                     className="px-6 py-2 data-[state=active]:bg-[#E6B24B] data-[state=active]:text-white

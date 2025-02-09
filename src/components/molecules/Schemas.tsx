@@ -19,7 +19,7 @@ const Schemas = ({ handleDeployWorkflow }: { handleDeployWorkflow: any }) => {
         broadcast: { type: "LighthouseStorage" },
         response: { type: "TemperatureAnalysis" },
       },
-      deployedWorkflows: 12,
+      deployedWorkflows: 2,
     },
   ];
 
