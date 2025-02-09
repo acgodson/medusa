@@ -16,18 +16,24 @@ export const createDataStorageTool = (lighthouseApiKey: string) =>
         if (!params.data) {
           throw new Error("No data provided for storage");
         }
+
+        if (!params.contractAddress) {
+          throw new Error("Contract address is required for storage");
+        }
+
         const publicClient = createPublicClient({
           chain: baseSepolia,
-          transport: http(
-            `https://api.developer.coinbase.com/rpc/v1/base-sepolia/${process.env.NEXT_PUBLIC_COINBASE_RPC}`
-          ),
+          transport: http(),
         });
 
+        console.log("Contract Address:", params.contractAddress);
+        console.log("Workflow ID:", params.workflowId);
+
         const workflow: any = await publicClient.readContract({
-          address: getAddress(params.contractAddress),
+          address: params.contractAddress as `0x${string}`,
           abi: RegistryArtifacts.abi,
           functionName: "workflows",
-          args: [params.id],
+          args: [BigInt(params.workflowId)],
         });
 
         if (!workflow) {
@@ -39,49 +45,90 @@ export const createDataStorageTool = (lighthouseApiKey: string) =>
         const ipnsId = workflow[1];
         const ipnsName = workflow[0];
 
-        const ipnsUrl = `http://gateway.lighthouse.storage/ipns/${ipnsId}}`;
-        const response = await fetch(ipnsUrl);
-        const metadata = await response.json();
+        const ipnsUrl = `http://gateway.lighthouse.storage/ipns/${ipnsId}`;
+        console.log("Fetching from IPNS URL:", ipnsUrl);
 
-        const newData = {
-          ...metadata,
-          items: [
-            {
-              ...params.data,
-              timestamp: Date.now(),
-              count: metadata.items.length + 1,
-            },
-            ...metadata.items,
-          ],
-        };
+        try {
+          const response = await fetch(ipnsUrl);
 
-        console.log("Starting storage update process with Lighthouse...");
+          if (!response.ok) {
+            // If this is the first time, create initial metadata structure
+            console.log(
+              "Initial IPNS fetch failed, creating new metadata structure"
+            );
+            const newData = {
+              items: [
+                {
+                  ...params.data,
+                  timestamp: Date.now(),
+                  count: 1,
+                },
+              ],
+            };
 
-        // Prepare data for upload
-        const dataToUpload = JSON.stringify(newData);
+            // Upload to Lighthouse
+            console.log("Attempting initial upload to Lighthouse...");
+            const uploadResponse = await lighthouse.uploadText(
+              JSON.stringify(newData),
+              lighthouseApiKey
+            );
 
-        // Upload to Lighthouse
-        console.log("Attempting upload to Lighthouse...");
-        const uploadResponse = await lighthouse.uploadText(
-          dataToUpload,
-          lighthouseApiKey,
-          undefined // Progress callback can be added here if needed
-        );
+            console.log("Initial Lighthouse upload response:", uploadResponse);
 
-        console.log("Lighthouse upload response:", uploadResponse);
+            if (!uploadResponse?.data?.Hash) {
+              throw new Error("Initial upload failed: No hash returned");
+            }
 
-        if (!uploadResponse?.data?.Hash) {
-          console.error("Invalid upload response:", uploadResponse);
-          throw new Error("Upload failed: No hash returned from Lighthouse");
+            return JSON.stringify({
+              success: true,
+              data: params.data,
+              cid: uploadResponse.data.Hash,
+              ipnsName: ipnsName,
+              ipnsId: ipnsId,
+            });
+          }
+
+          // If response is OK, proceed with updating existing data
+          const metadata = await response.json();
+          console.log("Retrieved metadata:", metadata);
+
+          const newData = {
+            ...metadata,
+            items: [
+              {
+                ...params.data,
+                timestamp: Date.now(),
+                count: metadata.items ? metadata.items.length + 1 : 1,
+              },
+              ...(metadata.items || []),
+            ],
+          };
+
+          console.log("Starting storage update process with Lighthouse...");
+          const dataToUpload = JSON.stringify(newData);
+
+          const uploadResponse = await lighthouse.uploadText(
+            dataToUpload,
+            lighthouseApiKey
+          );
+
+          console.log("Lighthouse upload response:", uploadResponse);
+
+          if (!uploadResponse?.data?.Hash) {
+            throw new Error("Upload failed: No hash returned");
+          }
+
+          return JSON.stringify({
+            success: true,
+            data: params.data,
+            cid: uploadResponse.data.Hash,
+            ipnsName: ipnsName,
+            ipnsId: ipnsId,
+          });
+        } catch (ipnsError: any) {
+          console.error("IPNS fetch/parse error:", ipnsError);
+          throw new Error(`IPNS operation failed: ${ipnsError.message}`);
         }
-
-        return JSON.stringify({
-          success: true,
-          data: params.data,
-          cid: uploadResponse.data.Hash,
-          ipnsName: ipnsName,
-          ipnsId: ipnsId,
-        });
       } catch (error: any) {
         console.error("Storage tool error:", error);
         throw new Error(`Failed to store data: ${error.message}`);

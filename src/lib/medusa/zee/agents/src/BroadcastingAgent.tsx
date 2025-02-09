@@ -1,10 +1,11 @@
 import { PrivyClient } from "@privy-io/server-auth";
-import { encodeFunctionData } from "viem";
+import { createPublicClient, encodeFunctionData, http } from "viem";
 import { createIPNSTool, createServerWalletTool } from "../../tools/";
 import { ZeeBaseAgent } from "../base";
 import RegistryArtifacts from "../../../../../../contracts/artifacts/MedusaRegistry.json";
 import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
 import { ServerWallet } from "../../../wallets/server-wallet";
+import { baseSepolia } from "viem/chains";
 
 export class BroadcastingAgent extends ZeeBaseAgent {
   private privyServerWallet: ServerWallet;
@@ -85,14 +86,46 @@ export class BroadcastingAgent extends ZeeBaseAgent {
     return wallets.data.find((wallet) => wallet.id === id);
   }
 
-  private async registerOnChain(walletId: string, workflowId: string) {
-    try {
-      console.log("Registering metadata on-chain...");
+  // private async registerOnChain(walletId: string, workflowId: string) {
+  //   try {
 
+  //     console.log("Registering metadata on-chain...");
+
+  //     const data = encodeFunctionData({
+  //       abi: RegistryArtifacts.abi,
+  //       functionName: "submitRecord",
+  //       args: [walletId, workflowId],
+  //     });
+
+  //     // Execute contract call via smart wallet
+  //     const result = await this.zeeAgent.tools?.["smart-wallet"].execute({
+  //       operation: "broadcast",
+  //       walletId,
+  //       txData: {
+  //         contractAddress: this.contractAddress,
+  //         data,
+  //       },
+  //     });
+
+  //     const parsedResult = JSON.parse(result);
+  //     if (!parsedResult.success) {
+  //       throw new Error("Contract interaction failed");
+  //     }
+
+  //     return parsedResult.transactionHash;
+  //   } catch (error) {
+  //     console.error("Contract registration error:", error);
+  //     throw error;
+  //   }
+  // }
+
+  private async registerDevice(walletId: string, workflowId: string) {
+    try {
+      console.log("Registering device...");
       const data = encodeFunctionData({
         abi: RegistryArtifacts.abi,
-        functionName: "submitRecord",
-        args: [walletId, workflowId],
+        functionName: "registerDevice",
+        args: [BigInt(workflowId), walletId],
       });
 
       // Execute contract call via smart wallet
@@ -107,12 +140,43 @@ export class BroadcastingAgent extends ZeeBaseAgent {
 
       const parsedResult = JSON.parse(result);
       if (!parsedResult.success) {
-        throw new Error("Contract interaction failed");
+        throw new Error("Device registration failed");
       }
 
       return parsedResult.transactionHash;
     } catch (error) {
-      console.error("Contract registration error:", error);
+      console.error("Device registration error:", error);
+      throw error;
+    }
+  }
+
+  private async submitRecord(walletId: string, workflowId: string) {
+    try {
+      console.log("Submitting record...");
+      const data = encodeFunctionData({
+        abi: RegistryArtifacts.abi,
+        functionName: "submitRecord",
+        args: [walletId, BigInt(workflowId)],
+      });
+
+      // Execute contract call via smart wallet
+      const result = await this.zeeAgent.tools?.["smart-wallet"].execute({
+        operation: "broadcast",
+        walletId,
+        txData: {
+          contractAddress: this.contractAddress,
+          data,
+        },
+      });
+
+      const parsedResult = JSON.parse(result);
+      if (!parsedResult.success) {
+        throw new Error("Record submission failed");
+      }
+
+      return parsedResult.transactionHash;
+    } catch (error) {
+      console.error("Record submission error:", error);
       throw error;
     }
   }
@@ -126,12 +190,19 @@ export class BroadcastingAgent extends ZeeBaseAgent {
     success: boolean;
     ipnsGatewayUrl?: string;
     transactionHash?: string;
+    registrationTxHash?: string;
     error?: string;
   }> {
     try {
-      // Validate input
-      if (!params.cid || !params.ipnsName) {
-        throw new Error("No CID or IPNS provided for operation");
+      // First, validate input parameters
+      if (
+        !params.walletId ||
+        !params.workflowId ||
+        !this.contractAddress ||
+        !params.cid ||
+        !params.ipnsName
+      ) {
+        throw new Error("Missing required parameters");
       }
 
       console.log("Workflow IPNS operations for CID:", params.cid);
@@ -152,15 +223,61 @@ export class BroadcastingAgent extends ZeeBaseAgent {
         throw new Error("Unable to fetch server wallet");
       }
 
-      // Register metadata on-chain
-      const txHash = await this.registerOnChain(
+      // Create a public client to read contract state
+      const publicClient = createPublicClient({
+        chain: baseSepolia,
+        transport: http(),
+      });
+
+      const workflow: any = await publicClient.readContract({
+        address: this.contractAddress as `0x${string}`,
+        abi: RegistryArtifacts.abi,
+        functionName: "workflows",
+        args: [BigInt(params.workflowId)],
+      });
+
+      console.log("Workflow status:", workflow);
+
+      if (!workflow || !workflow[3]) {
+        // check active status
+        throw new Error("Workflow is not active");
+      }
+
+      // Check registration status
+      const isRegistered = await publicClient.readContract({
+        address: this.contractAddress as `0x${string}`,
+        abi: RegistryArtifacts.abi,
+        functionName: "isDeviceRegistered",
+        args: [params.walletId],
+      });
+
+      console.log("Device registration status:", isRegistered);
+
+      let registrationTxHash;
+      let submissionTxHash;
+
+      // If not registered, register first
+      if (!isRegistered) {
+        console.log("Device not registered, registering now...");
+        registrationTxHash = await this.registerDevice(
+          activeWallet.id,
+          params.workflowId
+        );
+        // Wait a bit for the registration to be processed
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+
+      // Now submit the record
+      submissionTxHash = await this.submitRecord(
         activeWallet.id,
         params.workflowId
       );
+
       return {
         success: true,
         ipnsGatewayUrl: `https://gateway.lighthouse.storage/ipns/${ipnsId}`,
-        transactionHash: txHash,
+        transactionHash: submissionTxHash,
+        registrationTxHash,
       };
     } catch (error) {
       console.error("Broadcasting operation failed:", error);

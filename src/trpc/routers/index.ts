@@ -29,6 +29,7 @@ export const appRouter = createTRPCRouter({
           adminPrivateKey: process.env.ADMIN_PRIVATE_KEY!,
           contractAddress: process.env.REGISTRY_CONTRACT as `0x${string}`,
           walletId: input.deviceId,
+          workflowId: input.workflowId,
         });
 
         console.log("Starting workflow execution with input:", {

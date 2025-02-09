@@ -90,6 +90,7 @@ export class MedusaBridge {
     adminPrivateKey: string;
     contractAddress: `0x${string}`;
     walletId: string;
+    workflowId: number;
   }) {
     if (!MedusaBridge.instance) {
       MedusaBridge.instance = new MedusaBridge(config);
@@ -98,13 +99,13 @@ export class MedusaBridge {
   }
   async executeWorkflow(params: {
     deviceId: string;
-    workflowId: string;
+    workflowId: number;
     data: {
       temperature: number;
       humidity: number;
       timestamp: number;
     };
-    contractAddress: string; // Added missing parameter
+    contractAddress: string;
   }) {
     try {
       const initialState: MedusaWorkflowState = {

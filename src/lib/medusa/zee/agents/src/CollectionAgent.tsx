@@ -61,6 +61,8 @@ export class CollectionAgent extends ZeeBaseAgent {
       humidity: number;
       timestamp: number;
     };
+    contractAddress: string;
+    workflowId: number; //workflow
   }): Promise<{
     success: boolean;
     signature?: string;
@@ -116,6 +118,10 @@ export class CollectionAgent extends ZeeBaseAgent {
       const result = await privyTool.execute(args);
       const parsedResult = JSON.parse(result) as SignatureResponse;
 
+      if (typeof params.workflowId !== "number" || isNaN(params.workflowId)) {
+        throw new Error(`Invalid workflowId: ${params.workflowId}`);
+      }
+
       // Create storage state with signed data
       const storageState = this.createAgentState(
         {
@@ -124,6 +130,8 @@ export class CollectionAgent extends ZeeBaseAgent {
             ...params.data,
           },
           signature: parsedResult.signature,
+          contractAddress: params.contractAddress,
+          workflowId: params.workflowId,
         },
         {
           task: "Store and upload signed data",
@@ -156,6 +164,16 @@ export class CollectionAgent extends ZeeBaseAgent {
       }
 
       const storageArgs = JSON.parse(storeCall.function.arguments);
+
+      if (!storageArgs.contractAddress) {
+        storageArgs.contractAddress = params.contractAddress;
+      }
+
+      // Ensure workflowId is passed through
+      if (!storageArgs.workflowId) {
+        storageArgs.workflowId = params.workflowId;
+      }
+
       const storageResult = await storageTool.execute(storageArgs);
 
       return {
@@ -173,4 +191,3 @@ export class CollectionAgent extends ZeeBaseAgent {
     }
   }
 }
-
