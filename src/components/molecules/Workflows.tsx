@@ -47,6 +47,11 @@ const Workflows = ({
   const [isLoadingBalances, setIsLoadingBalances] = useState(false);
   const getWallet = trpc.getServerWallet.useMutation();
 
+  const formatAddress = (address: string) => {
+    if (!address) return "";
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
   const handleSubmitRecord = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
     setSubmitDialogOpen(true);
@@ -59,35 +64,21 @@ const Workflows = ({
 
   const fetchDeviceBalances = async () => {
     if (!workflow.deviceIds?.length) return;
-
     setIsLoadingBalances(true);
 
-    // Initialize balance states
-    setDeviceBalances(
-      workflow.deviceIds.map((id: string) => ({
-        deviceId: id,
-        address: "",
-        balance: "0",
-        isLoading: true,
-      }))
-    );
-
     try {
-      // Fetch all wallet addresses in parallel
-      const walletPromises = workflow.deviceIds.map((deviceId: string) =>
-        getWallet.mutateAsync({ walletId: deviceId })
+      const wallets = await Promise.all(
+        workflow.deviceIds.map((deviceId: string) =>
+          getWallet.mutateAsync({ walletId: deviceId })
+        )
       );
 
-      const wallets = await Promise.all(walletPromises);
-
-      // Fetch all balances in parallel
-      const balancePromises = wallets.map((wallet) =>
-        publicClient.getBalance({ address: wallet.address })
+      const balances = await Promise.all(
+        wallets.map((wallet) =>
+          publicClient.getBalance({ address: wallet.address })
+        )
       );
 
-      const balances = await Promise.all(balancePromises);
-
-      // Update states with results
       setDeviceBalances(
         workflow.deviceIds.map((deviceId: string, index: number) => ({
           deviceId,
@@ -119,163 +110,218 @@ const Workflows = ({
     <>
       <Card
         key={workflow.id}
-        className={`group relative overflow-hidden bg-white/80 backdrop-blur-sm border border-[#E6B24B]/50 hover:border-[#E6B24B]/80 transition-all duration-300 ${
+        className={`group relative overflow-hidden transition-all duration-300 ${
           isListView ? "flex flex-col md:flex-row md:items-center md:gap-4" : ""
         }`}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-xl"></div>
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-[#E6B24B]/5 to-transparent 
+                      opacity-100 transition-opacity duration-300"
+        ></div>
+        <div className="absolute inset-0 border border-white/60 rounded-xl shadow-lg"></div>
 
-        <CardHeader
-          className={`flex flex-row items-start justify-between space-y-0 pb-2 ${
-            isListView ? "flex-1" : ""
-          }`}
+        {/* Content */}
+        <div
+          className={`
+            relative z-10 p-6 w-full h-full
+            ${isListView ? "flex flex-row items-center gap-6" : "flex flex-col"}
+         `}
         >
-          <div className="space-y-1">
-            <h3 className="font-semibold text-lg flex items-center gap-2">
-              {workflow.name}
-              <ExternalLink className="h-4 w-4 text-gray-400" />
-            </h3>
-            <p className="text-sm text-gray-500">{workflow.description}</p>
+          <div className={`${isListView ? "w-1/3" : ""}`}>
+            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg flex items-center gap-2 text-gray-800">
+                  {workflow.name}
+                  <ExternalLink className="h-4 w-4 text-[#E6B24B]" />
+                </h3>
+                <p className="text-sm text-gray-600">{workflow.description}</p>
+              </div>
+            </CardHeader>
           </div>
-        </CardHeader>
 
-        <CardContent className={isListView ? "flex-1" : ""}>
-          <div className={"space-y-4 relative pt-2"}>
-            <div className="flex items-center justify-between text-sm">
-              <div className={`flex items-center gap-2`}>
-                <Users className="h-4 w-4 text-[#E6B24B]" />
-                <span>{workflow.contributors} contributors</span>
-              </div>
-              <div className="text-gray-500">
-                {workflow.totalExecutions} <Tooltip>executions</Tooltip>
-              </div>
-            </div>
-
-            {!showDevices ? (
-              <>
-                <div className="p-3 bg-gray-50/50 rounded-lg space-y-2">
-                  <div className="text-xs text-gray-500">Details:</div>
-                  <div className="text-sm space-y-1">
-                    <div className="flex items-center space-x-1">
-                      <Workflow className="h-4 w-4 text-[#5555]" /> Schema:{" "}
-                      {workflow.schema}
-                    </div>
-                    <div>Creator: {workflow.creator}</div>
+          <CardContent className={isListView ? "flex" : ""}>
+            <div className="space-y-6">
+              {!isListView && (
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-[#E6B24B]" />
+                    <span className="text-gray-700">
+                      {workflow.contributors} contributors
+                    </span>
+                  </div>
+                  <div className="text-[#E6B24B]">
+                    {workflow.totalExecutions} <Tooltip>executions</Tooltip>
                   </div>
                 </div>
-                {workflow.isContributor && (
-                  <p
-                    className="text-xs flex justify-end text-blue-500 hover:text-blue-700 cursor-pointer hover:underline"
-                    onClick={() => setShowDevices(true)}
+              )}
+
+              {!showDevices ? (
+                <>
+                  <div
+                    className="p-4 bg-white/40 backdrop-blur-md rounded-lg border border-white/60 
+                               shadow-inner space-y-3"
                   >
-                    You have <b className="px-1">{workflow.deviceIds.length}</b>{" "}
-                    registered device(s)
-                  </p>
-                )}
-              </>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-sm font-medium">Registered Devices</h4>
-                  <button
-                    className="text-xs text-gray-500 hover:text-gray-700"
-                    onClick={() => setShowDevices(false)}
-                  >
-                    Back to Details
-                  </button>
-                </div>
-                {workflow.deviceIds.map((deviceId: string, index: number) => {
-                  const { balance, isLoading } = getDeviceBalance(deviceId);
-                  return (
-                    <div key={index} className="p-3 bg-gray-50/50 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <div className="flex-1">
-                          <div className="flex items-center w-full gap-2">
-                            <p className="text-sm font-medium truncate">
-                              {deviceId}
-                            </p>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 w-6 p-0"
-                              title="Fund Device"
-                              onClick={() => handleOpenWallet(deviceId)}
-                            >
-                              <Wallet className="h-3 w-3 text-[#E6B24B]" />
-                            </Button>
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            {isLoading ? (
-                              <span className="inline-block w-16 h-4 bg-gray-200 animate-pulse rounded" />
-                            ) : (
-                              `${Number(balance).toFixed(4)} ETH`
-                            )}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          {isListView ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs font-semibold"
-                              >
-                                <span className="mr-1">0</span> Executions
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs font-semibold"
-                                onClick={() => handleSubmitRecord(deviceId)}
-                              >
-                                <Play className="h-3 w-3 mr-1" />
-                                Submit
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs font-semibold"
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View
-                              </Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button size="sm" variant="outline">
-                                0
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleSubmitRecord(deviceId)}
-                              >
-                                <Play className="h-3 w-3" />
-                              </Button>
-                              <Button size="sm" variant="outline">
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                    <div className="text-xs text-gray-500 font-medium">
+                      Details:
+                    </div>
+                    <div className="text-sm space-y-2 text-gray-700">
+                      <div className="flex items-center gap-2">
+                        <Workflow className="h-4 w-4 text-[#E6B24B]" />
+                        <span>Schema: {workflow.schema}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-[#E6B24B]" />
+                        <span>Creator: {formatAddress(workflow.creator)}</span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+                  {workflow.isContributor && (
+                    <p
+                      className="text-xs flex justify-end text-[#E6B24B] hover:text-[#B88A2D] 
+                               cursor-pointer ehover:underline transition-colors duration-200"
+                      onClick={() => setShowDevices(true)}
+                    >
+                      You have{" "}
+                      <b className="px-1">{workflow.deviceIds.length}</b>{" "}
+                      registered device(s)
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-sm font-medium text-gray-800">
+                      Registered Devices
+                    </h4>
+                    <button
+                      className="text-xs text-[#E6B24B] hover:text-[#B88A2D] transition-colors duration-200"
+                      onClick={() => setShowDevices(false)}
+                    >
+                      Back to Details
+                    </button>
+                  </div>
+                  {workflow.deviceIds.map((deviceId: string, index: number) => {
+                    const { balance, isLoading } = getDeviceBalance(deviceId);
+                    return (
+                      <div
+                        key={index}
+                        className="p-4 bg-white/40 backdrop-blur-md rounded-lg 
+                                                border border-white/60 shadow-inner"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1">
+                            <div className="flex items-center w-full gap-2">
+                              <p className="text-sm font-medium truncate text-gray-800">
+                                {deviceId}
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 hover:bg-[#E6B24B]/10"
+                                title="Fund Device"
+                                onClick={() => handleOpenWallet(deviceId)}
+                              >
+                                <Wallet className="h-3 w-3 text-[#E6B24B]" />
+                              </Button>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              {isLoading ? (
+                                <span className="inline-block w-16 h-4 bg-gray-200 animate-pulse rounded" />
+                              ) : (
+                                `${Number(balance).toFixed(4)} ETH`
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            {isListView ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs font-medium bg-white/80 
+                                           border-1.5 border-gray-200 hover:bg-white hover:border-gray-300 
+                                           text-gray-700 shadow-sm hover:shadow transition-all duration-200"
+                                >
+                                  <span className="mr-1">
+                                    {index === 2 ? "2" : "0"}
+                                  </span>{" "}
+                                  Executions
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs font-medium bg-white/80 
+                                  border-1.5 border-gray-200 hover:bg-white hover:border-gray-300 
+                                  text-gray-700 shadow-sm hover:shadow transition-all duration-200"
+                                  onClick={() => handleSubmitRecord(deviceId)}
+                                >
+                                  <Play className="h-3 w-3 mr-1" />
+                                  Submit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs font-medium bg-white/80 
+                                  border-1.5 border-gray-200 hover:bg-white hover:border-gray-300 
+                                  text-gray-700 shadow-sm hover:shadow transition-all duration-200"
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  View
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-white/80 backdrop-blur-sm border-1.5
+                                           hover:bg-white hover:border-gray-300 text-gray-700
+                                           shadow-sm hover:shadow transition-all duration-200"
+                                >
+                                  0
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-white/60 backdrop-blur-sm border-white/60 
+                                           hover:bg-white/80 text-gray-700"
+                                  onClick={() => handleSubmitRecord(deviceId)}
+                                >
+                                  <Play className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-white/60 backdrop-blur-sm border-white/60 
+                                           hover:bg-white/80 text-gray-700"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
-            {!showDevices && (
-              <Button
-                variant="outline"
-                className="w-full hover:bg-[#E6B24B]/10"
-                onClick={() => handleJoinWorkflow(workflow.id)}
-              >
-                {isPending ? <Spinner /> : "Join Workflow"}
-              </Button>
-            )}
-          </div>
-        </CardContent>
+              {!showDevices && (
+                <Button
+                  variant="outline"
+                  className="w-full bg-white/60 backdrop-blur-sm border-[#E6B24B]/30 
+                           hover:bg-[#E6B24B]/10 text-gray-700 shadow-md hover:shadow-lg 
+                           transition-all duration-200"
+                  onClick={() => handleJoinWorkflow(workflow.id)}
+                >
+                  {isPending ? <Spinner /> : "Join Workflow"}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </div>
 
         <SubmitRecordDialog
           open={submitDialogOpen}

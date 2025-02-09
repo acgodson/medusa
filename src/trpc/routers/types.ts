@@ -30,3 +30,4 @@ export const DeviceRegistrationInput = z.object({
 export const WorkFlowCreationIput = z.object({
   schemaID: z.string(),
 });
+ 
