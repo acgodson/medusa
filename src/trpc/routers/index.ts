@@ -103,20 +103,28 @@ export const appRouter = createTRPCRouter({
         throw new Error(`Failed to register device: ${error.message}`);
       }
     }),
-
   registerDevice: baseProcedure
     .input(DeviceRegistrationInput)
     .mutation(async ({ input }) => {
-      /* Sets Policy and Creates Server Wallet for Device */
       try {
-        const privy = new PrivyClient(
-          process.env.PRIVY_APP_ID!,
-          process.env.PRIVY_APP_SECRET!
-        );
-
-        const { id: walletId, address } = await privy.walletApi.create({
-          chainType: "ethereum",
+        const response = await fetch("https://api.privy.io/v1/wallets", {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${Buffer.from(
+              `${process.env.PRIVY_APP_ID}:${process.env.PRIVY_APP_SECRET}`
+            ).toString("base64")}`,
+            "privy-app-id": process.env.PRIVY_APP_ID!,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chain_type: "ethereum",
+            policy_ids: [process.env.PRIVY_POLICY_ID],
+          }),
         });
+
+        const walletData = await response.json();
+        const walletId = walletData.id;
+        const address = walletData.address;
 
         const data = encodeFunctionData({
           abi: RegistryArtifacts.abi,

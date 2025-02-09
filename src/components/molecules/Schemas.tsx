@@ -63,11 +63,6 @@ const Schemas = ({ handleDeployWorkflow }: { handleDeployWorkflow: any }) => {
                 variant="outline"
                 className="w-full hover:bg-[#E6B24B]/10"
                 onClick={handleDeployWorkflow}
-                style={
-                  {
-                    // zIndex: 9999999,
-                  }
-                }
                 // disabled={!createWorkflow.isPending}
               >
                 Deploy Using Schema
