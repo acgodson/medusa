@@ -139,6 +139,25 @@ export const appRouter = createTRPCRouter({
         throw new Error(`Failed to register device: ${error.message}`);
       }
     }),
+
+  getServerWallet: baseProcedure
+    .input(
+      z.object({
+        walletId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const privy = new PrivyClient(
+        process.env.PRIVY_APP_ID!,
+        process.env.PRIVY_APP_SECRET!
+      );
+
+      const data = await privy.walletApi.getWallet({
+        id: input.walletId,
+      });
+
+      return data;
+    }),
 });
 
 // export type definition of API

@@ -122,6 +122,8 @@ export const useWorkflow = () => {
           const response = await fetch(ipnsUrl);
           const metadata = await response.json();
 
+          const executionCount = metadata.items?.length || 0;
+
           workflows.push({
             id: i,
             name: metadata.title || `Workflow ${i}`,
@@ -129,7 +131,7 @@ export const useWorkflow = () => {
               metadata.description || "Environment monitoring system",
             schema: "temp-humid-basic",
             contributors: Number(contributorCount),
-            totalExecutions: 0,
+            totalExecutions: executionCount,
             creator: creator,
             active: active,
             timestamp: Number(timestamp),

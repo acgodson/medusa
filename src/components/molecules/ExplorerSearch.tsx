@@ -5,7 +5,7 @@ import { Input } from "@/components/atoms/input";
 
 const ExplorerSearch = () => {
   const [gatewayUrl, setGatewayUrl] = useState(
-    "https://default-gateway.medusa.network"
+    "https://<device-id>.medusa.network"
   );
 
   return (

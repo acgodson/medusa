@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ExternalLink,
   GitBranch,
@@ -11,6 +11,22 @@ import {
 import { Card, CardHeader, CardContent, Button, Spinner } from "../atoms";
 import { SubmitRecordDialog } from "./submitRecordDialog";
 import { Tooltip } from "../atoms/tooltip";
+import WalletDialog from "./WalletDialog";
+import { createPublicClient, formatEther, http } from "viem";
+import { baseSepolia } from "viem/chains";
+import { trpc } from "@/trpc/client";
+
+const publicClient = createPublicClient({
+  chain: baseSepolia,
+  transport: http(),
+});
+
+interface DeviceBalance {
+  deviceId: string;
+  address: string;
+  balance: string;
+  isLoading: boolean;
+}
 
 const Workflows = ({
   workflow,
@@ -25,14 +41,78 @@ const Workflows = ({
 }) => {
   const [showDevices, setShowDevices] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
-  const [gatewayUrl, setGatewayUrl] = useState(
-    "https://default-gateway.medusa.network"
-  );
+  const [deviceBalances, setDeviceBalances] = useState<DeviceBalance[]>([]);
+  const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+  const getWallet = trpc.getServerWallet.useMutation();
 
   const handleSubmitRecord = (deviceId: string) => {
     setSelectedDeviceId(deviceId);
     setSubmitDialogOpen(true);
+  };
+
+  const handleOpenWallet = (id: string) => {
+    setIsWalletOpen(true);
+    setSelectedDeviceId(id);
+  };
+
+  const fetchDeviceBalances = async () => {
+    if (!workflow.deviceIds?.length) return;
+
+    setIsLoadingBalances(true);
+
+    // Initialize balance states
+    setDeviceBalances(
+      workflow.deviceIds.map((id: string) => ({
+        deviceId: id,
+        address: "",
+        balance: "0",
+        isLoading: true,
+      }))
+    );
+
+    try {
+      // Fetch all wallet addresses in parallel
+      const walletPromises = workflow.deviceIds.map((deviceId: string) =>
+        getWallet.mutateAsync({ walletId: deviceId })
+      );
+
+      const wallets = await Promise.all(walletPromises);
+
+      // Fetch all balances in parallel
+      const balancePromises = wallets.map((wallet) =>
+        publicClient.getBalance({ address: wallet.address })
+      );
+
+      const balances = await Promise.all(balancePromises);
+
+      // Update states with results
+      setDeviceBalances(
+        workflow.deviceIds.map((deviceId: string, index: number) => ({
+          deviceId,
+          address: wallets[index].address,
+          balance: formatEther(balances[index]),
+          isLoading: false,
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching balances:", error);
+    } finally {
+      setIsLoadingBalances(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showDevices) {
+      fetchDeviceBalances();
+    }
+  }, [showDevices]);
+
+  const getDeviceBalance = (deviceId: string) => {
+    const device = deviceBalances.find((d) => d.deviceId === deviceId);
+    if (!device) return { balance: "0", isLoading: true };
+    return { balance: device.balance, isLoading: device.isLoading };
   };
 
   return (
@@ -104,74 +184,84 @@ const Workflows = ({
                     Back to Details
                   </button>
                 </div>
-                {workflow.deviceIds.map((deviceId: string, index: number) => (
-                  <div key={index} className="p-3 bg-gray-50/50 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <div className="flex-1">
-                        <div className="flex items-center w-full gap-2">
-                          <p className="text-sm font-medium truncate">
-                            {deviceId}
+                {workflow.deviceIds.map((deviceId: string, index: number) => {
+                  const { balance, isLoading } = getDeviceBalance(deviceId);
+                  return (
+                    <div key={index} className="p-3 bg-gray-50/50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <div className="flex items-center w-full gap-2">
+                            <p className="text-sm font-medium truncate">
+                              {deviceId}
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              title="Fund Device"
+                              onClick={() => handleOpenWallet(deviceId)}
+                            >
+                              <Wallet className="h-3 w-3 text-[#E6B24B]" />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            {isLoading ? (
+                              <span className="inline-block w-16 h-4 bg-gray-200 animate-pulse rounded" />
+                            ) : (
+                              `${Number(balance).toFixed(4)} ETH`
+                            )}
                           </p>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 w-6 p-0"
-                            title="Fund Device"
-                          >
-                            <Wallet className="h-3 w-3 text-[#E6B24B]" />
-                          </Button>
                         </div>
-                        <p className="text-xs text-gray-500">0.0 ETH</p>
-                      </div>
-                      <div className="flex gap-2">
-                        {isListView ? (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              <span className="mr-1">0</span> Executions
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs"
-                              onClick={() => handleSubmitRecord(deviceId)}
-                            >
-                              <Play className="h-3 w-3 mr-1" />
-                              Submit Record
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View Results
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button size="sm" variant="outline">
-                              0
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleSubmitRecord(deviceId)}
-                            >
-                              <Play className="h-3 w-3" />
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                          </>
-                        )}
+                        <div className="flex gap-2">
+                          {isListView ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs font-semibold"
+                              >
+                                <span className="mr-1">0</span> Executions
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs font-semibold"
+                                onClick={() => handleSubmitRecord(deviceId)}
+                              >
+                                <Play className="h-3 w-3 mr-1" />
+                                Submit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs font-semibold"
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                View
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="sm" variant="outline">
+                                0
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleSubmitRecord(deviceId)}
+                              >
+                                <Play className="h-3 w-3" />
+                              </Button>
+                              <Button size="sm" variant="outline">
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -192,6 +282,13 @@ const Workflows = ({
           onClose={() => setSubmitDialogOpen(false)}
           deviceId={selectedDeviceId}
           workflowTitle={workflow.name}
+          workflowId={workflow.id}
+        />
+
+        <WalletDialog
+          open={isWalletOpen}
+          onClose={() => setIsWalletOpen(false)}
+          walletId={selectedDeviceId}
         />
       </Card>
     </>
