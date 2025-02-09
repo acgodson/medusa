@@ -9,9 +9,15 @@ import { ZeeWorkflow } from "@covalenthq/ai-agent-sdk";
 
 interface MedusaWorkflowState {
   agent: string;
-  messages: any[];
+  messages:
+    | Array<{
+        role: string;
+        name: string;
+        content: string;
+      }>
+    | any[];
   status: "idle" | "running" | "paused" | "failed" | "finished";
-  children?: MedusaWorkflowState[];
+  children: MedusaWorkflowState[]; // Make children required, not optional
 }
 
 export class MedusaBridge {
@@ -97,6 +103,7 @@ export class MedusaBridge {
     }
     return MedusaBridge.instance;
   }
+
   async executeWorkflow(params: {
     deviceId: string;
     workflowId: number;
@@ -118,14 +125,12 @@ export class MedusaBridge {
               deviceId: params.deviceId,
               workflowId: params.workflowId,
               contractAddress: params.contractAddress,
-              data: {
-                message: `Sensor data from device ${params.deviceId}`,
-                ...params.data,
-              },
+              data: params.data,
             }),
           },
         ],
         status: "idle",
+        children: [], // Always initialize children as empty array
       };
 
       console.log("Starting data collection...");
@@ -133,10 +138,7 @@ export class MedusaBridge {
         deviceId: params.deviceId,
         workflowId: params.workflowId,
         contractAddress: params.contractAddress,
-        data: {
-          message: `Sensor data from device ${params.deviceId}`,
-          ...params.data,
-        },
+        data: params.data,
       });
 
       if (!collectionResult.success) {
@@ -159,42 +161,65 @@ export class MedusaBridge {
       console.log("Starting data analysis...");
       const analysisResult = await this.agents.get("response").execute({
         deviceId: params.deviceId,
-        workflowId: params.workflowId,
         data: params.data,
-        contractAddress: params.contractAddress,
         storageConfirmation: {
           cid: collectionResult.storageResult.cid,
           ipnsId: broadcastResult.ipnsGatewayUrl.split("/ipns/")[1],
         },
       });
 
-      const workflowState: MedusaWorkflowState | any = {
-        ...initialState,
-        status: "running",
+      // Create child states for each agent execution
+      const collectionState: MedusaWorkflowState = {
+        agent: "collector",
+        status: "finished",
         messages: [
-          ...initialState.messages,
           {
             role: "function",
             name: "data_collection",
             content: JSON.stringify(collectionResult),
           },
+        ],
+        children: [], // Always include empty children array
+      };
+
+      const broadcastState: MedusaWorkflowState = {
+        agent: "broadcaster",
+        status: "finished",
+        messages: [
           {
             role: "function",
             name: "data_broadcast",
             content: JSON.stringify(broadcastResult),
           },
+        ],
+        children: [], // Always include empty children array
+      };
+
+      const analysisState: MedusaWorkflowState = {
+        agent: "analyzer",
+        status: "finished",
+        messages: [
           {
             role: "function",
             name: "data_analysis",
             content: JSON.stringify(analysisResult),
           },
-        ] as any[],
+        ],
+        children: [], // Always include empty children array
+      };
+
+      // Create the final workflow state
+      const workflowState: MedusaWorkflowState = {
+        ...initialState,
+        status: "finished",
+        messages: [...initialState.messages],
+        children: [collectionState, broadcastState, analysisState],
       };
 
       console.log("Executing complete workflow...");
       const workflowResult = await ZeeWorkflow.run(
         this.workflow,
-        workflowState
+        workflowState as any
       );
 
       return {
@@ -215,6 +240,7 @@ export class MedusaBridge {
       };
     }
   }
+
   async executeOperation(operation: string, params: any) {
     const [system, agentType, action] = operation.split(".");
 

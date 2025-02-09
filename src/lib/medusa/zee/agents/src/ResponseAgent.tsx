@@ -1,7 +1,3 @@
-
-// checks
-//
-
 import { ZeeBaseAgent } from "../base";
 import { createProcessingTool } from "../../tools";
 import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
@@ -32,13 +28,16 @@ export class ResponseAgent extends ZeeBaseAgent {
       defaultTask: "Analyze sensor data and infer policies",
     });
 
-    // Store the tool instance for direct execution
     this.dataProcessor = CreateProcessingTool;
   }
 
   async execute(params: {
     deviceId: string;
-    data: any;
+    data: {
+      temperature: number;
+      humidity: number;
+      timestamp: number;
+    };
     storageConfirmation: {
       cid: string;
       ipnsId: string;
@@ -49,9 +48,27 @@ export class ResponseAgent extends ZeeBaseAgent {
 
       const gatewayUrl = `https://gateway.lighthouse.storage/ipns/${params.storageConfirmation.ipnsId}`;
 
-      // Execute policy inference directly
+      // Common context for all operations
+      const context = {
+        task: "Sensor Data Analysis",
+        guidelines: [
+          "Analyze data quality and completeness",
+          "Detect anomalies in sensor readings",
+          "Consider historical context",
+          "Classify usage as Processed/Analyzed/Monetized",
+          "Determine retention period based on data significance",
+        ],
+        alertCriteria: [
+          "Check for readings outside normal ranges",
+          "Identify rapid changes or anomalies",
+          "Flag data quality issues",
+          "Monitor for system health indicators",
+        ],
+      };
+
+      // Execute policy inference
       console.log("Running policy analysis...");
-      const policyAnalysis = await this.dataProcessor.execute({
+      const policyAnalysisStr = await this.dataProcessor.execute({
         operation: "inferPolicy",
         data: {
           deviceId: params.deviceId,
@@ -60,59 +77,32 @@ export class ResponseAgent extends ZeeBaseAgent {
           timestamp: Date.now(),
         },
         context: {
+          ...context,
           task: "Policy Inference",
-          guidelines: [
-            "Analyze data quality and completeness",
-            "Detect anomalies in sensor readings",
-            "Consider historical context",
-            "Classify usage as Processed/Analyzed/Monetized",
-            "Determine retention period based on data significance",
-          ],
-          alertCriteria: [
-            "Check for readings outside normal ranges",
-            "Identify rapid changes or anomalies",
-            "Flag data quality issues",
-            "Monitor for system health indicators",
-          ],
         },
       });
 
-      console.log(
-        "Policy Analysis Result:",
-        JSON.stringify(policyAnalysis, null, 2)
-      );
+      const policyAnalysis = JSON.parse(policyAnalysisStr);
+      console.log("Policy Analysis Result:", policyAnalysis);
 
-      // Execute conditions check directly
+      // Execute conditions check
       console.log("Running conditions analysis...");
-      const conditionsAnalysis = await this.dataProcessor.execute({
+      const conditionsAnalysisStr = await this.dataProcessor.execute({
         operation: "checkConditions",
         data: {
           deviceId: params.deviceId,
+          latestData: params.data,
           gatewayUrl,
           timestamp: Date.now(),
         },
         context: {
+          ...context,
           task: "Condition Check",
-          alertCriteria: [
-            "Check for readings outside normal ranges",
-            "Identify rapid changes or anomalies",
-            "Flag data quality issues",
-            "Monitor for system health indicators",
-          ],
-          guidelines: [
-            "Analyze data quality and completeness",
-            "Detect anomalies in sensor readings",
-            "Consider historical context",
-            "Classify usage as Processed/Analyzed/Monetized",
-            "Determine retention period based on data significance",
-          ],
         },
       });
 
-      console.log(
-        "Conditions Analysis Result:",
-        JSON.stringify(conditionsAnalysis, null, 2)
-      );
+      const conditionsAnalysis = JSON.parse(conditionsAnalysisStr);
+      console.log("Conditions Analysis Result:", conditionsAnalysis);
 
       // Combine results into final inference
       const inference = {
@@ -124,6 +114,7 @@ export class ResponseAgent extends ZeeBaseAgent {
           metadata: {
             analysisTime: new Date().toISOString(),
             dataSource: gatewayUrl,
+            latestReading: params.data,
           },
         },
         storageRef: {
