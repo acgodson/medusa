@@ -34,7 +34,7 @@ export const createServerWalletTool = (serverWallet: ServerWallet) =>
           transactionHash: txHash,
         });
       } catch (error: any) {
-        throw new Error(`Smart wallet operation failed: ${error.message}`);
+        throw new Error(`Server wallet operation failed: ${error.message}`);
       }
     },
   });

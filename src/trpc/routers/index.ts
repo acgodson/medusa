@@ -26,7 +26,6 @@ export const appRouter = createTRPCRouter({
           },
           rpcUrl: process.env.RPC_URL!,
           lighthouseApiKey: process.env.LIGHTHOUSE_API_KEY!,
-          adminPrivateKey: process.env.ADMIN_PRIVATE_KEY!,
           contractAddress: process.env.REGISTRY_CONTRACT as `0x${string}`,
           walletId: input.deviceId,
           workflowId: input.workflowId,

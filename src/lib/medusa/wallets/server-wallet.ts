@@ -15,12 +15,6 @@ export class ServerWallet {
   }
 
   async selfBroadcast(signResult: any) {
-    // const publicClient = createPublicClient({
-    //   chain: baseSepolia,
-    //   transport: http(
-    //     `https://api.developer.coinbase.com/rpc/v1/base-sepolia/${process.env.NEXT_PUBLIC_COINBASE_RPC}`
-    //   ),
-    // });
     // broadcast signed transaction using the public client
     const hash = await this.client.sendRawTransaction({
       serializedTransaction: signResult.signedTransaction as Hex,
@@ -59,9 +53,9 @@ export class ServerWallet {
         to: contractAddress,
         data: data,
         chainId: baseSepolia.id,
-        maxFeePerGas: "0x59682F00", // 1.5 Gwei
-        maxPriorityFeePerGas: "0x3B9ACA00", // 1 Gwei
-        gasLimit: "0x2DC6C0",
+        maxFeePerGas: "0x8F0D1800", // 2,400,000,000 Wei  → 2.4 Gwei
+        maxPriorityFeePerGas: "0x5F5E1000", // 1,600,000,000 Wei  → 1.6 Gwei
+        gasLimit: "0x3D0900", // 400,000 Gas
         value: 0,
         nonce: `0x${nonce.toString(16)}`,
       },

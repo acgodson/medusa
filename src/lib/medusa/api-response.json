@@ -1,0 +1,360 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Sensor Analysis Workflow API",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/api/workflow/results": {
+        "get": {
+          "responses": {
+            "200": {
+              "description": "Successful workflow execution",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "result": {
+                        "type": "object",
+                        "properties": {
+                          "data": {
+                            "type": "object",
+                            "properties": {
+                              "success": {
+                                "type": "boolean"
+                              },
+                              "result": {
+                                "type": "object",
+                                "properties": {
+                                  "success": {
+                                    "type": "boolean"
+                                  },
+                                  "workflow": {
+                                    "type": "object",
+                                    "properties": {
+                                      "collection": {
+                                        "type": "object",
+                                        "properties": {
+                                          "success": {
+                                            "type": "boolean"
+                                          },
+                                          "signature": {
+                                            "type": "string"
+                                          },
+                                          "storageResult": {
+                                            "type": "object",
+                                            "properties": {
+                                              "success": {
+                                                "type": "boolean"
+                                              },
+                                              "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "temperature": {
+                                                    "type": "number"
+                                                  },
+                                                  "humidity": {
+                                                    "type": "number"
+                                                  },
+                                                  "timestamp": {
+                                                    "type": "number"
+                                                  }
+                                                },
+                                                "required": ["temperature", "humidity", "timestamp"]
+                                              },
+                                              "cid": {
+                                                "type": "string"
+                                              },
+                                              "ipnsName": {
+                                                "type": "string"
+                                              },
+                                              "ipnsId": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": ["success", "data", "cid", "ipnsName", "ipnsId"]
+                                          }
+                                        },
+                                        "required": ["success", "signature", "storageResult"]
+                                      },
+                                      "broadcast": {
+                                        "type": "object",
+                                        "properties": {
+                                          "success": {
+                                            "type": "boolean"
+                                          },
+                                          "ipnsGatewayUrl": {
+                                            "type": "string"
+                                          },
+                                          "transactionHash": {
+                                            "type": "object",
+                                            "properties": {
+                                              "success": {
+                                                "type": "boolean"
+                                              },
+                                              "transactionHash": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "required": ["success", "transactionHash"]
+                                          }
+                                        },
+                                        "required": ["success", "ipnsGatewayUrl", "transactionHash"]
+                                      },
+                                      "analysis": {
+                                        "type": "object",
+                                        "properties": {
+                                          "success": {
+                                            "type": "boolean"
+                                          },
+                                          "inference": {
+                                            "type": "object",
+                                            "properties": {
+                                              "deviceId": {
+                                                "type": "string"
+                                              },
+                                              "timestamp": {
+                                                "type": "number"
+                                              },
+                                              "analysis": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "policy": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "operation": {
+                                                        "type": "string",
+                                                        "enum": ["inferPolicy"]
+                                                      },
+                                                      "analysis": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "usagePolicy": {
+                                                            "type": "string",
+                                                            "enum": ["Processed", "Analyzed", "Monetized"]
+                                                          },
+                                                          "retention": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "duration": {
+                                                                "type": "number"
+                                                              },
+                                                              "reason": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": ["duration", "reason"]
+                                                          },
+                                                          "insights": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "recommendations": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "type": "string"
+                                                            }
+                                                          }
+                                                        },
+                                                        "required": ["usagePolicy", "retention", "insights", "recommendations"]
+                                                      },
+                                                      "statistics": {
+                                                        "$ref": "#/components/schemas/EnvironmentalStats"
+                                                      },
+                                                      "confidence": {
+                                                        "type": "number"
+                                                      },
+                                                      "processingTimestamp": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                      }
+                                                    },
+                                                    "required": ["operation", "analysis", "statistics", "confidence", "processingTimestamp"]
+                                                  },
+                                                  "conditions": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "operation": {
+                                                        "type": "string",
+                                                        "enum": ["checkConditions"]
+                                                      },
+                                                      "conditions": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "alerts": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "temperatureStatus": {
+                                                            "type": "string",
+                                                            "enum": ["normal", "warning", "critical"]
+                                                          },
+                                                          "temperatureTrend": {
+                                                            "type": "string",
+                                                            "enum": ["stable", "increasing", "decreasing"]
+                                                          },
+                                                          "temperatureExplanation": {
+                                                            "type": "string"
+                                                          },
+                                                          "humidityStatus": {
+                                                            "type": "string",
+                                                            "enum": ["normal", "warning", "critical"]
+                                                          },
+                                                          "humidityTrend": {
+                                                            "type": "string",
+                                                            "enum": ["stable", "increasing", "decreasing"]
+                                                          },
+                                                          "humidityExplanation": {
+                                                            "type": "string"
+                                                          },
+                                                          "suggestedActions": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "type": "string"
+                                                            }
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "alerts",
+                                                          "temperatureStatus",
+                                                          "temperatureTrend",
+                                                          "temperatureExplanation",
+                                                          "humidityStatus",
+                                                          "humidityTrend",
+                                                          "humidityExplanation",
+                                                          "suggestedActions"
+                                                        ]
+                                                      },
+                                                      "statistics": {
+                                                        "$ref": "#/components/schemas/EnvironmentalStats"
+                                                      },
+                                                      "analysisTimestamp": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                      }
+                                                    },
+                                                    "required": ["operation", "conditions", "statistics", "analysisTimestamp"]
+                                                  },
+                                                  "metadata": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "analysisTime": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                      },
+                                                      "dataSource": {
+                                                        "type": "string"
+                                                      },
+                                                      "latestReading": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "temperature": {
+                                                            "type": "number"
+                                                          },
+                                                          "humidity": {
+                                                            "type": "number"
+                                                          },
+                                                          "timestamp": {
+                                                            "type": "number"
+                                                          }
+                                                        },
+                                                        "required": ["temperature", "humidity", "timestamp"]
+                                                      }
+                                                    },
+                                                    "required": ["analysisTime", "dataSource", "latestReading"]
+                                                  }
+                                                },
+                                                "required": ["policy", "conditions", "metadata"]
+                                              },
+                                              "storageRef": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "cid": {
+                                                    "type": "string"
+                                                  },
+                                                  "ipnsId": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "required": ["cid", "ipnsId"]
+                                              }
+                                            },
+                                            "required": ["deviceId", "timestamp", "analysis", "storageRef"]
+                                          }
+                                        },
+                                        "required": ["success", "inference"]
+                                      }
+                                    },
+                                    "required": ["collection", "broadcast", "analysis"]
+                                  }
+                                },
+                                "required": ["success", "workflow"]
+                              }
+                            },
+                            "required": ["success", "result"]
+                          }
+                        },
+                        "required": ["data"]
+                      }
+                    },
+                    "required": ["result"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "EnvironmentalStats": {
+          "type": "object",
+          "properties": {
+            "temperature": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "average": {
+                  "type": "number"
+                },
+                "variance": {
+                  "type": "number"
+                }
+              },
+              "required": ["min", "max", "average", "variance"]
+            },
+            "humidity": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                },
+                "average": {
+                  "type": "number"
+                },
+                "variance": {
+                  "type": "number"
+                }
+              },
+              "required": ["min", "max", "average", "variance"]
+            }
+          },
+          "required": ["temperature", "humidity"]
+        }
+      }
+    }
+  }

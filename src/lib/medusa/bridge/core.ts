@@ -32,7 +32,6 @@ export class MedusaBridge {
       privyConfig: PrivyWalletConfig;
       rpcUrl: string;
       lighthouseApiKey: string;
-      adminPrivateKey: string;
       contractAddress: `0x${string}`;
       walletId: string;
     }
@@ -93,7 +92,6 @@ export class MedusaBridge {
     privyConfig: PrivyWalletConfig;
     rpcUrl: string;
     lighthouseApiKey: string;
-    adminPrivateKey: string;
     contractAddress: `0x${string}`;
     walletId: string;
     workflowId: number;
