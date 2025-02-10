@@ -6,6 +6,7 @@ import { WagmiProvider } from "@privy-io/wagmi";
 import { MedusaProvider } from "./MedusaProvider";
 import { PrivyClientConfig, PrivyProvider } from "@privy-io/react-auth";
 import { EthProvider } from "./EthContext";
+import GraphProviders from "./GraphProviders";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -16,11 +17,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       >
         <TRPCProvider>
           <WagmiProvider config={wagmiConfig}>
-            <MedusaProvider>
-              <EthProvider>{children}</EthProvider>
-            </MedusaProvider>
+            <GraphProviders>
+              <MedusaProvider>
+                <EthProvider>{children}</EthProvider>
+              </MedusaProvider>
+            </GraphProviders>
           </WagmiProvider>
-        </TRPCProvider>{" "}
+        </TRPCProvider>
       </PrivyProvider>
     </>
   );

@@ -1,15 +1,37 @@
-import React, { useState } from "react";
+import AuroraBackground from "@/components/atoms/aurora-background";
+import React from "react";
 import WorkflowExplorer from "@/components/organisms/WorkflowExplorer";
 import Header from "@/components/molecules/Header";
-import AuroraBackground from "@/components/atoms/aurora-background";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
+import { gql, request } from "graphql-request";
+import { WORKFLOWS_QUERY } from "@/lib/graphql/queries";
 
-const Home = () => {
+const SUBGRAPH_URL =
+  "https://api.studio.thegraph.com/query/61092/medusa/version/latest";
+
+export default async function HomePage() {
+  const queryClient = new QueryClient();
+
+  // Prefetch both data and workflows
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: ["data"],
+      queryFn: async () => {
+        return await request(SUBGRAPH_URL, WORKFLOWS_QUERY);
+      },
+    }),
+  ]);
+
   return (
-    <AuroraBackground className="flex flex-col gap-2 w-full">
-      <Header />
-      <WorkflowExplorer />
-    </AuroraBackground>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <AuroraBackground className="flex flex-col gap-2 w-full">
+        <Header />
+        <WorkflowExplorer />
+      </AuroraBackground>
+    </HydrationBoundary>
   );
-};
-
-export default Home;
+}

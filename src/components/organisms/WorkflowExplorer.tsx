@@ -46,7 +46,7 @@ const WorkflowExplorer = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen">
       <div className="w-full max-w-7xl mx-auto p-6 space-y-8">
         {/* Enhanced Search Section */}
         <div className="flex items-center justify-center w-full">
@@ -59,7 +59,7 @@ const WorkflowExplorer = () => {
         {/* Enhanced Main Content Area */}
         <div className="relative">
           {/* Layered Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/60 to-white/40 backdrop-blur-2xl rounded-2xl"></div>
+          <div className="absolute inset-0 bg-gradient-to-br backdrop-blur-2xl rounded-2xl"></div>
           <div className="absolute inset-0 bg-[#E6B24B]/5 mix-blend-overlay rounded-2xl"></div>
           <div className="absolute inset-0 border border-white/60 rounded-2xl shadow-xl"></div>
 
@@ -119,22 +119,18 @@ const WorkflowExplorer = () => {
                       : "grid-cols-1"
                   } gap-6`}
                 >
-                  {isLoading ? (
-                    <ExplorerSkeleton />
-                  ) : (
-                    fetchedWorkflows &&
-                    fetchedWorkflows.length > 0 &&
+                  {fetchedWorkflows && fetchedWorkflows.length > 0 ? (
                     fetchedWorkflows.map((workflow: any, i: number) => (
-                      // <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <Workflows
-                          key={i}
-                          workflow={workflow}
-                          handleJoinWorkflow={handleJoinWorkflow}
-                          isPending={createWorkflow.isPending}
-                          isListView={viewMode !== "grid"}
-                        />
-                      // </div>
+                      <Workflows
+                        key={i}
+                        workflow={workflow}
+                        handleJoinWorkflow={handleJoinWorkflow}
+                        isPending={createWorkflow.isPending}
+                        isListView={viewMode !== "grid"}
+                      />
                     ))
+                  ) : (
+                    <ExplorerSkeleton />
                   )}
                 </div>
               </TabsContent>

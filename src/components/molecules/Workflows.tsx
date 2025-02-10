@@ -124,7 +124,7 @@ const x = () =>{
           isListView ? "flex flex-col md:flex-row md:items-center md:gap-4" : ""
         }`}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-xl"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/30 backdrop-blur-xl"></div>
         <div
           className="absolute inset-0 bg-gradient-to-r from-[#E6B24B]/5 to-transparent 
                       opacity-100 transition-opacity duration-300"
