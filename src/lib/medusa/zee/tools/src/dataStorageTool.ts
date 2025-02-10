@@ -45,7 +45,7 @@ export const createDataStorageTool = (lighthouseApiKey: string) =>
         const ipnsId = workflow[1];
         const ipnsName = workflow[0];
 
-        const ipnsUrl = `http://gateway.lighthouse.storage/ipns/${ipnsId}`;
+        const ipnsUrl = `https://gateway.lighthouse.storage/ipns/${ipnsId}`;
         console.log("Fetching from IPNS URL:", ipnsUrl);
 
         try {

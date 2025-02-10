@@ -126,7 +126,7 @@ export const useWorkflow = () => {
 
               if (!workflowData[1] || workflowData[1] === "") return null;
 
-              const ipnsUrl = `http://gateway.lighthouse.storage/ipns/${workflowData[1]}`;
+              const ipnsUrl = `https://gateway.lighthouse.storage/ipns/${workflowData[1]}`;
               const response = await fetch(ipnsUrl);
               const metadata = await response.json();
               const executionCount = metadata.items?.length || 0;
