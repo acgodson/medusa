@@ -17,7 +17,7 @@ export const createServerWalletTool = (serverWallet: ServerWallet) =>
         })
         .optional(),
     }),
-    execute: async (params) => {
+    execute: async (params: any) => {
       try {
         if (!params.txData) {
           throw new Error("Transaction data required for broadcast");

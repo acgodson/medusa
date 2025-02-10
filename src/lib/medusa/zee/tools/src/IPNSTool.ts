@@ -18,7 +18,7 @@ export const createIPNSTool = (lighthouseApiKey: string) =>
       cid: z.string().optional(),
     }),
 
-    execute: async (params) => {
+    execute: async (params: any) => {
       try {
         switch (params.operation) {
           case "generateKey":

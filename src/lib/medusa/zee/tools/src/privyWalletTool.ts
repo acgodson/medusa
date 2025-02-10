@@ -27,7 +27,7 @@ export const createPrivyWalletTool = (privy: PrivyClient, walletId: string) =>
     description:
       "REQUIRED: Use this tool first to sign any sensor data before storage. Takes a message and returns a signature.",
     schema: WalletSchema,
-    execute: async (params) => {
+    execute: async (params: any) => {
       console.log("Privy tool executing with params:", params);
       try {
         // If wallet isn't provided, try to get or create one

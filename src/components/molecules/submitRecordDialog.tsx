@@ -12,7 +12,7 @@ import { trpc } from "@/trpc/client";
 import { usePrivy } from "@privy-io/react-auth";
 import { ExternalLink } from "lucide-react";
 import { WorkflowResultsDrawer } from "./ResultSection";
-import { WorkflowResult } from "@/lib/medusa/bridge/types";
+import { WorkflowResultsProps } from "@/lib/medusa/bridge/types";
 
 interface SubmitRecordDialogProps {
   open: boolean;
@@ -33,15 +33,14 @@ export function SubmitRecordDialog({
   const [humidity, setHumidity] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
-  const [workflowResult, setWorkflowResult] = useState<WorkflowResult | null>(
-    null
-  );
+  const [workflowResult, setWorkflowResult] =
+    useState<WorkflowResultsProps | null>(null);
   const { authenticated } = usePrivy();
 
   const executeWorkflow = trpc.executeWorkflow.useMutation({
     onSuccess: (data) => {
       console.log("Record submitted:", data);
-      setWorkflowResult(data as WorkflowResult);
+      setWorkflowResult(data as unknown as WorkflowResultsProps);
       setShowResults(true);
     },
     onError: (error) => {

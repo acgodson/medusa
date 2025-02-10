@@ -1,0 +1,47 @@
+type DeviceRegistered @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  walletId: String! # string
+  userAddress: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransferred @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RecordDeactivated @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  deactivator: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RecordUpdated @entity(immutable: true) {
+  id: Bytes!
+  walletId: String! # string
+  workflowId: BigInt! # uint256
+  executionCount: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type WorkflowCreated @entity(immutable: true) {
+  id: Bytes!
+  internal_id: BigInt! # uint256
+  creator: Bytes! # address
+  ipnsId: String! # string
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}

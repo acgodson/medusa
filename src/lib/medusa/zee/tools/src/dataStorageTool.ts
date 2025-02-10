@@ -10,7 +10,7 @@ export const createDataStorageTool = (lighthouseApiKey: string) =>
     id: "store-sensor-data",
     description: "Store sensor data and upload to IPFS via Lighthouse",
     schema: DataSchema,
-    execute: async (params) => {
+    execute: async (params: any) => {
       try {
         // Validate the input
         if (!params.data) {
