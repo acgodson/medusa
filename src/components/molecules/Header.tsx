@@ -29,7 +29,7 @@ const ExplorerHeader = () => {
     <div className="flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-sm border-b border-gray-200">
       <div className="flex items-center space-x-3">
         <img src="/black-logo.png" alt="Medusa Logo" className="h-8 w-8" />
-        <h1 className="text-2xl font-bold text-black bg-clip-text text-transparent">
+        <h1 className="text-2xl font-bold text-black bg-clip-text">
           Medusa
         </h1>
       </div>
