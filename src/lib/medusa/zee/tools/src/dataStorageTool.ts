@@ -1,14 +1,13 @@
 import { createTool } from "@covalenthq/ai-agent-sdk";
-import lighthouse from "@lighthouse-web3/sdk";
 import { DataSchema } from "../../types";
-import { createPublicClient, getAddress, http } from "viem";
+import { createPublicClient, http } from "viem";
 import RegistryArtifacts from "../../../../../../contracts/artifacts/MedusaRegistry.json";
 import { baseSepolia } from "viem/chains";
 
 export const createDataStorageTool = (lighthouseApiKey: string) =>
   createTool({
     id: "store-sensor-data",
-    description: "Store sensor data and upload to IPFS via Lighthouse",
+    description: "Store sensor data and upload to IPFS via Lighthouse API",
     schema: DataSchema,
     execute: async (params: any) => {
       try {
@@ -40,7 +39,7 @@ export const createDataStorageTool = (lighthouseApiKey: string) =>
           throw new Error("Smart Contract Error");
         }
 
-        // Retreiving ipnsName from smart contract
+        // Retrieving ipnsName from smart contract
         console.log("Starting retrieval from Lighthouse...");
         const ipnsId = workflow[1];
         const ipnsName = workflow[0];
@@ -51,12 +50,13 @@ export const createDataStorageTool = (lighthouseApiKey: string) =>
         try {
           const response = await fetch(ipnsUrl);
 
+          let newData;
           if (!response.ok) {
             // If this is the first time, create initial metadata structure
             console.log(
               "Initial IPNS fetch failed, creating new metadata structure"
             );
-            const newData = {
+            newData = {
               items: [
                 {
                   ...params.data,
@@ -65,63 +65,61 @@ export const createDataStorageTool = (lighthouseApiKey: string) =>
                 },
               ],
             };
+          } else {
+            // If response is OK, proceed with updating existing data
+            const metadata = await response.json();
+            console.log("Retrieved metadata:", metadata);
 
-            // Upload to Lighthouse
-            console.log("Attempting initial upload to Lighthouse...");
-            const uploadResponse = await lighthouse.uploadText(
-              JSON.stringify(newData),
-              lighthouseApiKey
-            );
-
-            console.log("Initial Lighthouse upload response:", uploadResponse);
-
-            if (!uploadResponse?.data?.Hash) {
-              throw new Error("Initial upload failed: No hash returned");
-            }
-
-            return JSON.stringify({
-              success: true,
-              data: params.data,
-              cid: uploadResponse.data.Hash,
-              ipnsName: ipnsName,
-              ipnsId: ipnsId,
-            });
+            newData = {
+              ...metadata,
+              items: [
+                {
+                  ...params.data,
+                  timestamp: Date.now(),
+                  count: metadata.items ? metadata.items.length + 1 : 1,
+                },
+                ...(metadata.items || []),
+              ],
+            };
           }
 
-          // If response is OK, proceed with updating existing data
-          const metadata = await response.json();
-          console.log("Retrieved metadata:", metadata);
+          // Prepare form data for the API request
+          const formData = new FormData();
+          const blob = new Blob([JSON.stringify(newData)], {
+            type: "application/json",
+          });
+          formData.append("file", blob);
 
-          const newData = {
-            ...metadata,
-            items: [
-              {
-                ...params.data,
-                timestamp: Date.now(),
-                count: metadata.items ? metadata.items.length + 1 : 1,
+          // Upload to Lighthouse API
+          console.log("Starting upload to Lighthouse API...");
+          const uploadResponse = await fetch(
+            "https://node.lighthouse.storage/api/v0/add",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${lighthouseApiKey}`,
               },
-              ...(metadata.items || []),
-            ],
-          };
-
-          console.log("Starting storage update process with Lighthouse...");
-          const dataToUpload = JSON.stringify(newData);
-
-          const uploadResponse = await lighthouse.uploadText(
-            dataToUpload,
-            lighthouseApiKey
+              body: formData,
+            }
           );
 
-          console.log("Lighthouse upload response:", uploadResponse);
+          if (!uploadResponse.ok) {
+            throw new Error(
+              `Upload failed with status: ${uploadResponse.status}`
+            );
+          }
 
-          if (!uploadResponse?.data?.Hash) {
+          const uploadResult = await uploadResponse.json();
+          console.log("Lighthouse upload response:", uploadResult);
+
+          if (!uploadResult?.Hash) {
             throw new Error("Upload failed: No hash returned");
           }
 
           return JSON.stringify({
             success: true,
             data: params.data,
-            cid: uploadResponse.data.Hash,
+            cid: uploadResult.Hash,
             ipnsName: ipnsName,
             ipnsId: ipnsId,
           });

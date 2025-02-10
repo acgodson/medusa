@@ -1,9 +1,15 @@
 "use client";
 import React, { useState } from "react";
 import { ExternalLink, GitBranch, Search } from "lucide-react";
-import { Card, CardHeader, CardContent, Button } from "../atoms";
+import { Card, CardHeader, CardContent, Button, Spinner } from "../atoms";
 
-const Schemas = ({ handleDeployWorkflow }: { handleDeployWorkflow: any }) => {
+const Schemas = ({
+  handleDeployWorkflow,
+  isPending,
+}: {
+  handleDeployWorkflow: any;
+  isPending: boolean;
+}) => {
   const [gatewayUrl, setGatewayUrl] = useState(
     "https://default-gateway.medusa.network"
   );
@@ -65,7 +71,7 @@ const Schemas = ({ handleDeployWorkflow }: { handleDeployWorkflow: any }) => {
                 onClick={handleDeployWorkflow}
                 // disabled={!createWorkflow.isPending}
               >
-                Deploy Using Schema
+                {isPending ? <Spinner /> : "    Deploy Using Schema"}
               </Button>
             </div>
           </CardContent>

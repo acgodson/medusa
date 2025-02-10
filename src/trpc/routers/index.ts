@@ -1,17 +1,15 @@
 import { z } from "zod";
 import { baseProcedure, createTRPCRouter } from "../init";
-import { customAlphabet } from "nanoid";
 import { MedusaBridge } from "@/lib/medusa/bridge/core";
 import RegistryArtifacts from "../../../contracts/artifacts/MedusaRegistry.json";
 import { encodeFunctionData } from "viem";
 import { PrivyClient } from "@privy-io/server-auth";
-import lighthouse from "@lighthouse-web3/sdk";
-import { RouterHelper } from "./helpers";
 import {
   DataCollectionInput,
   WorkFlowCreationIput,
   DeviceRegistrationInput,
 } from "./types";
+import { LighthouseAPI } from "./helpers";
 
 export const appRouter = createTRPCRouter({
   executeWorkflow: baseProcedure
@@ -57,51 +55,54 @@ export const appRouter = createTRPCRouter({
     .input(WorkFlowCreationIput)
     .mutation(async ({ input }) => {
       try {
+        const lighthouse = new LighthouseAPI(process.env.LIGHTHOUSE_API_KEY!);
+
         const schema = {
           title: "",
           description: "",
-          //TODO, other members and context of the schema filled up from frontend
           items: [],
         };
+
         const dataToUpload = JSON.stringify({
           ...schema,
           timestamp: Date.now(),
-        }); // Upload to Lighthouse
+        });
+
         console.log("Attempting upload to Lighthouse...");
-        const uploadResponse = await lighthouse.uploadText(
-          dataToUpload,
-          process.env.LIGHTHOUSE_API_KEY!,
-          undefined
-        );
-        if (!uploadResponse?.data?.Hash) {
+        const uploadResponse = await lighthouse.uploadText(dataToUpload);
+
+        if (!uploadResponse?.Hash) {
           console.error("Invalid upload response:", uploadResponse);
           throw new Error("Upload failed: No hash returned from Lighthouse");
         }
-        const cid = uploadResponse.data.Hash;
 
-        const ipnsHelper = new RouterHelper(process.env.LIGHTHOUSE_API_KEY!);
+        const cid = uploadResponse.Hash;
+        console.log("Upload successful, CID:", cid);
 
-        const result = await ipnsHelper.handleIpnsOperations(cid);
-        console.log(result);
+        const result = await lighthouse.handleIpnsOperations(cid);
+        console.log("IPNS operations result:", result);
 
         const data = encodeFunctionData({
           abi: RegistryArtifacts.abi,
           functionName: "createWorkflow",
           args: [result.ipnsName, result.ipnsId],
         });
+
         const txData = {
           contractAddress: process.env.REGISTRY_CONTRACT,
           data,
         };
+
         return {
           data: txData,
           contractAddress: process.env.REGISTRY_CONTRACT,
         };
       } catch (error: any) {
-        console.error("Device registration failed:", error);
-        throw new Error(`Failed to register device: ${error.message}`);
+        console.error("Workflow creation failed:", error);
+        throw new Error(`Failed to create workflow: ${error.message}`);
       }
     }),
+
   registerDevice: baseProcedure
     .input(DeviceRegistrationInput)
     .mutation(async ({ input }) => {
@@ -130,6 +131,7 @@ export const appRouter = createTRPCRouter({
           functionName: "registerDevice",
           args: [input.workflowId, walletId],
         });
+
         const txData = {
           contractAddress: process.env.REGISTRY_CONTRACT,
           data,
@@ -167,5 +169,4 @@ export const appRouter = createTRPCRouter({
     }),
 });
 
-// export type definition of API
 export type AppRouter = typeof appRouter;

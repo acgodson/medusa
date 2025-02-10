@@ -34,11 +34,10 @@ const WorkflowExplorer = () => {
     withAuth(handleSubmit);
   };
 
+  // Fixed function - removed conditional check that caused double-click issue
   const handleJoinWorkflow = (workflowId: number) => {
     setSelectedWorkflow(workflowId);
-    if (selectedWorkflow === workflowId) {
-      setIsOpen(true);
-    }
+    setIsOpen(true);
   };
 
   const selectedWorkflowData = fetchedWorkflows?.find(
@@ -101,7 +100,9 @@ const WorkflowExplorer = () => {
                     )}
                   </Button>
                   <Button
-                    onClick={handleDeployWorkflow}
+                    onClick={() =>
+                      alert("Choose a schema from available schemas")
+                    }
                     className="bg-gradient-to-r from-[#E6B24B] to-[#B88A2D] text-white shadow-lg 
                              hover:shadow-xl hover:opacity-90 px-6 py-2 rounded-lg transition-all duration-200"
                   >
@@ -143,7 +144,10 @@ const WorkflowExplorer = () => {
                       : "grid-cols-1"
                   } gap-6`}
                 >
-                  <Schemas handleDeployWorkflow={handleDeployWorkflow} />
+                  <Schemas
+                    isPending={createWorkflow.isPending}
+                    handleDeployWorkflow={handleDeployWorkflow}
+                  />
                 </div>
               </TabsContent>
             </Tabs>
@@ -155,7 +159,7 @@ const WorkflowExplorer = () => {
         workflowId={selectedWorkflow}
         workflowTitle={selectedWorkflowData?.name || ""}
         open={isOpen}
-        onClose={() => setIsOpen(!isOpen)}
+        onClose={() => setIsOpen(false)}
       />
     </div>
   );
