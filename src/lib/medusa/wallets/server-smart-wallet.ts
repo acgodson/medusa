@@ -1,27 +1,12 @@
 import { PrivyClient } from "@privy-io/server-auth";
-import {
-  Address,
-  Client,
-  Hash,
-  Hex,
-  LocalAccount,
-  SignableMessage,
-  TypedDataDefinition,
-  createPublicClient,
-  http,
-  parseGwei,
-} from "viem";
+import { createViemAccount } from "@privy-io/server-auth/viem";
+import { Address, Client, createPublicClient, http, parseGwei } from "viem";
 import { baseSepolia } from "viem/chains";
 import {
   createBundlerClient,
   toCoinbaseSmartAccount,
   createPaymasterClient,
 } from "viem/account-abstraction";
-
-// Extend the base account type to include raw signing
-interface ExtendedAccount extends LocalAccount {
-  rawSign?: (message: Hex) => Promise<Hex>;
-}
 
 export class ServerWallet {
   public privy: PrivyClient;
@@ -36,157 +21,26 @@ export class ServerWallet {
     });
   }
 
-  async createServerSigner(walletId: string): Promise<ExtendedAccount> {
-    const walletInfo = await this.privy.walletApi.getWallet({ id: walletId });
-    const privyClient = this.privy;
-
-    const bridgeInstance = this;
-
-    const signer: ExtendedAccount | any = {
-      address: walletInfo.address as Address,
-      type: "local",
-
-      async signMessage({ message }: { message: SignableMessage }) {
-        console.log("Signing message:", message);
-        try {
-          const response: any = await privyClient.walletApi.rpc({
-            walletId,
-            //@ts-ignore
-            method: "personal_sign",
-            //@ts-ignore
-            params: [
-              typeof message === "string" ? message : message.raw.toString(),
-              walletInfo.address,
-            ],
-          });
-
-          if (!response || !response.data || !response.data.signature) {
-            throw new Error("Invalid signature response");
-          }
-
-          const signature = response.data.signature;
-          return signature.startsWith("0x")
-            ? (signature as Hex)
-            : (`0x${signature}` as Hex);
-        } catch (error) {
-          console.error("signMessage failed:", error);
-          throw error;
-        }
-      },
-
-      async signTransaction(transaction: any) {
-        console.log("Signing transaction:", transaction);
-        try {
-          const response: any = await privyClient.walletApi.rpc({
-            walletId,
-            //@ts-ignore
-            method: "eth_signTransaction",
-            //@ts-ignore
-            params: {
-              transaction: {
-                ...transaction,
-                chainId: baseSepolia.id, // Make sure chainId is included
-              },
-            },
-          });
-
-          if (!response || !response.data || !response.data.signature) {
-            throw new Error("Invalid signature response");
-          }
-
-          const signature: any = response.data.signature;
-          return signature.startsWith("0x")
-            ? (signature as Hex)
-            : (`0x${signature}` as Hex);
-        } catch (error) {
-          console.error("signTransaction failed:", error);
-          throw error;
-        }
-      },
-
-      async signTypedData<
-        const TTypedData extends TypedDataDefinition | Record<string, unknown>,
-        TPrimaryType extends
-          | keyof TTypedData
-          | "EIP712Domain" = keyof TTypedData
-      >(typedData: TypedDataDefinition<TTypedData, TPrimaryType>) {
-        console.log("Signing typed data:", typedData);
-        try {
-          const response: any = await privyClient.walletApi.rpc({
-            walletId,
-            //@ts-ignore
-            method: "eth_signTypedData_v4",
-            //@ts-ignore
-            params: [walletInfo.address, JSON.stringify(typedData)],
-          });
-
-          if (!response || !response.data || !response.data.signature) {
-            throw new Error("Invalid signature response");
-          }
-
-          const signature = response.data.signature;
-          return signature.startsWith("0x")
-            ? (signature as Hex)
-            : (`0x${signature}` as Hex);
-        } catch (error) {
-          console.error("signTypedData failed:", error);
-          throw error;
-        }
-      },
-
-      async rawSign(message: Hex) {
-        console.log("Raw signing message:", message);
-        try {
-          const response: any = await privyClient.walletApi.rpc({
-            walletId,
-            method: "personal_sign",
-            params: { message },
-          });
-
-          if (!response?.data?.signature) {
-            throw new Error("Invalid signature response");
-          }
-
-          const signature = response.data.signature;
-          return signature.startsWith("0x")
-            ? (signature as Hex)
-            : (`0x${signature}` as Hex);
-        } catch (error: any) {
-          console.error("Raw sign failed:", error);
-          throw error;
-        }
-      },
-    };
-
-    // Add sign method that uses rawSign
-    signer.sign = async ({ hash }: { hash: Hash }) => {
-      if (!signer.rawSign) {
-        throw new Error("Raw signing not supported");
-      }
-      console.log("Sign called with hash:", hash);
-      return signer.rawSign(hash);
-    };
-
-    return signer;
-  }
-
-  async createSmartAccount(walletId: string) {
+  async createSmartAccount(walletId: string, address: Address) {
     if (!this.smartAccountPromise) {
       this.smartAccountPromise = (async () => {
         console.log("Creating smart account for wallet:", walletId);
-        const serverSigner = await this.createServerSigner(walletId);
-        console.log(
-          "Server signer created with methods:",
-          Object.keys(serverSigner)
-        );
 
-        if (!serverSigner.sign) {
-          throw new Error("Signer must implement sign method");
-        }
+        // Create viem account using Privy's helper
+        const viemAccount = await createViemAccount({
+          walletId,
+          address,
+          privy: this.privy,
+        });
+
+        console.log("Viem account created:", {
+          address: viemAccount.address,
+          type: viemAccount.type,
+        });
 
         const smartAccount = await toCoinbaseSmartAccount({
           client: this.client,
-          owners: [serverSigner as LocalAccount],
+          owners: [viemAccount], // Use the viem account as the signer
         });
 
         console.log("Smart account created:", {
@@ -201,8 +55,13 @@ export class ServerWallet {
     return this.smartAccountPromise;
   }
 
-  async executeOperation(walletId: string, contractAddress: Hex, data: Hex) {
-    const smartAccount = await this.createSmartAccount(walletId);
+  async executeOperation(
+    walletId: string,
+    address: Address,
+    contractAddress: `0x${string}`,
+    data: `0x${string}`
+  ) {
+    const smartAccount = await this.createSmartAccount(walletId, address);
 
     const paymasterClient = createPaymasterClient({
       transport: http(
@@ -223,6 +82,7 @@ export class ServerWallet {
     const preVerificationGas = parseGwei("0.002");
     const maxFeePerGas = parseGwei("0.25");
     const maxPriorityFeePerGas = parseGwei("0.05");
+
     try {
       console.log("Preparing user operation with params:", {
         smartAccountAddress: smartAccount.address,
@@ -240,10 +100,9 @@ export class ServerWallet {
         preVerificationGas,
       });
 
-      // Compare with your signature
-      const sign = await smartAccount.signUserOperation(preparedOp);
+      const signature = await smartAccount.signUserOperation(preparedOp);
 
-      const x = await bundlerClient.sendUserOperation({
+      return await bundlerClient.sendUserOperation({
         account: smartAccount,
         calls: [{ to: contractAddress, data }],
         maxFeePerGas,
@@ -251,7 +110,7 @@ export class ServerWallet {
         callGasLimit,
         verificationGasLimit,
         preVerificationGas,
-        signature: sign,
+        signature,
       });
     } catch (error) {
       console.error("Failed to send user operation:", error);
