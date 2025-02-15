@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTool } from "@covalenthq/ai-agent-sdk";
-import { PrivyClient } from "@privy-io/server-auth";
+import { Hex } from "@privy-io/server-auth";
+import { ServerWallet } from "@/lib/medusa/wallets/server-wallet";
 
 export interface PrivyWalletConfig {
   appId: string;
@@ -9,19 +10,14 @@ export interface PrivyWalletConfig {
 }
 
 export const WalletSchema = z.object({
-  operation: z.enum(["getAddress", "getWalletId", "sign"]),
+  operation: z.enum(["getAddress", "getWalletId", "sign", "signTxn"]),
   message: z.string(),
 });
 
-// This is basically just get, stopped creating after testing would soon delete
-async function getOrCreateWallet(privy: PrivyClient, id: string) {
-  const wallets = await privy.walletApi.getWallets({
-    chainType: "ethereum",
-  });
-  return wallets.data.find((wallet) => wallet.id === id);
-}
-
-export const createPrivyWalletTool = (privy: PrivyClient, walletId: string) =>
+export const createPrivyWalletTool = (
+  serverWallet: ServerWallet,
+  walletId: string
+) =>
   createTool({
     id: "privy-wallet",
     description:
@@ -29,9 +25,9 @@ export const createPrivyWalletTool = (privy: PrivyClient, walletId: string) =>
     schema: WalletSchema,
     execute: async (params: any) => {
       console.log("Privy tool executing with params:", params);
+      const privy = serverWallet.privy;
       try {
-        // If wallet isn't provided, try to get or create one
-        const activeWallet = await getOrCreateWallet(privy, walletId);
+        const activeWallet = await privy.walletApi.getWallet({ id: walletId });
         console.log("Active wallet:", activeWallet);
 
         if (!activeWallet) {
@@ -56,11 +52,27 @@ export const createPrivyWalletTool = (privy: PrivyClient, walletId: string) =>
             console.log("Returning response:", response);
             return response;
 
+          case "signTxn":
+            if (!params.txData) {
+              throw new Error("Transaction data required for broadcast");
+            }
+
+            const txHash = await serverWallet.executeOperation(
+              params.walletId,
+              params.txData.contractAddress as Hex,
+              params.txData.data as Hex
+            );
+
+            return JSON.stringify({
+              success: true,
+              transactionHash: txHash,
+            });
+
           case "getAddress":
-            return JSON.stringify({ address: activeWallet.address });
+            return JSON.stringify(activeWallet.address);
 
           case "getWalletId":
-            return JSON.stringify({ walletId: activeWallet.id });
+            return JSON.stringify(activeWallet.id);
 
           default:
             throw new Error("Unsupported wallet operation");

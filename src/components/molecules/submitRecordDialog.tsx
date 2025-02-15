@@ -52,33 +52,33 @@ export function SubmitRecordDialog({
   const handleSubmit = async () => {
     setError(null);
 
-    // Basic validation
-    if (!temperature || !humidity) {
-      setError("Please fill in all fields");
-      return;
-    }
+    // // Basic validation
+    // if (!temperature || !humidity) {
+    //   setError("Please fill in all fields");
+    //   return;
+    // }
 
-    const tempValue = parseFloat(temperature);
-    const humidityValue = parseFloat(humidity);
+    // const tempValue = parseFloat(temperature);
+    // const humidityValue = parseFloat(humidity);
 
-    if (isNaN(tempValue) || isNaN(humidityValue)) {
-      setError("Please enter valid numbers");
-      return;
-    }
+    // if (isNaN(tempValue) || isNaN(humidityValue)) {
+    //   setError("Please enter valid numbers");
+    //   return;
+    // }
 
-    try {
-      await executeWorkflow.mutateAsync({
-        deviceId,
-        data: {
-          temperature: tempValue,
-          humidity: humidityValue,
-          timestamp: Date.now(),
-        },
-        workflowId: parseInt(workflowId),
-      });
-    } catch (err: any) {
-      setError(err.message || "Failed to submit record");
-    }
+    // try {
+    //   await executeWorkflow.mutateAsync({
+    //     deviceId,
+    //     data: {
+    //       temperature: tempValue,
+    //       humidity: humidityValue,
+    //       timestamp: Date.now(),
+    //     },
+    //     workflowId: parseInt(workflowId),
+    //   });
+    // } catch (err: any) {
+    //   setError(err.message || "Failed to submit record");
+    // }
   };
 
   const handleCloseResults = () => {

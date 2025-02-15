@@ -12,7 +12,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <>
       <PrivyProvider
-        appId={"cm6rro6rj00a39ffmyokmg9x4"}
+        appId={"cm09c0kux05vl7269wln6qrff"}
         config={privyConfig as PrivyClientConfig}
       >
         <TRPCProvider>

@@ -1,17 +1,30 @@
 import { ZeeBaseAgent } from "../base";
 import { createProcessingTool } from "../../tools";
-import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
+import { ServerWallet } from "@/lib/medusa/wallets/server-wallet";
+import { LLM, ModelConfig } from "@covalenthq/ai-agent-sdk";
+
+type ResponseAgentConfig = {
+  model: ModelConfig;
+  rpcUrl: string;
+  chainId: string;
+  greenfieldChainId: string;
+  greenfieldRpcUrl: string;
+  walletId: string;
+  adminAddress: string;
+  adminPrivateKey: string;
+  serverWallet: ServerWallet;
+};
 
 export class ResponseAgent extends ZeeBaseAgent {
   private dataProcessor: ReturnType<typeof createProcessingTool>;
 
-  constructor(config: {
-    openAiKey: string;
-    privyConfig: PrivyWalletConfig;
-    rpcUrl: string;
-  }) {
-    const CreateProcessingTool = createProcessingTool();
+  constructor(config: ResponseAgentConfig) {
+    const llm = new LLM(config.model);
+
+    const CreateProcessingTool = createProcessingTool({ llm });
+
     super({
+      model: config.model,
       name: "Response Agent",
       description:
         "Agent for analyzing and inferring policies from sensor data",
@@ -24,7 +37,6 @@ export class ResponseAgent extends ZeeBaseAgent {
       tools: {
         "data-processor": CreateProcessingTool,
       },
-      openAiKey: config.openAiKey,
       defaultTask: "Analyze sensor data and infer policies",
     });
 
@@ -38,15 +50,21 @@ export class ResponseAgent extends ZeeBaseAgent {
       humidity: number;
       timestamp: number;
     };
+    historicalData?: Array<{
+      temperature: number;
+      humidity: number;
+      timestamp: number;
+    }>;
+    workflowId: string;
     storageConfirmation: {
-      cid: string;
-      ipnsId: string;
+      bucketName: string;
+      objectName: string;
     };
   }) {
     try {
       console.log("Starting inference for device:", params.deviceId);
 
-      const gatewayUrl = `https://gateway.lighthouse.storage/ipns/${params.storageConfirmation.ipnsId}`;
+      const historicalData = params.historicalData || [];
 
       // Common context for all operations
       const context = {
@@ -73,7 +91,8 @@ export class ResponseAgent extends ZeeBaseAgent {
         data: {
           deviceId: params.deviceId,
           latestData: params.data,
-          gatewayUrl,
+          historicalData,
+          workflowId: params.workflowId,
           timestamp: Date.now(),
         },
         context: {
@@ -92,7 +111,8 @@ export class ResponseAgent extends ZeeBaseAgent {
         data: {
           deviceId: params.deviceId,
           latestData: params.data,
-          gatewayUrl,
+          historicalData,
+          workflowId: params.workflowId,
           timestamp: Date.now(),
         },
         context: {
@@ -113,13 +133,13 @@ export class ResponseAgent extends ZeeBaseAgent {
           conditions: conditionsAnalysis,
           metadata: {
             analysisTime: new Date().toISOString(),
-            dataSource: gatewayUrl,
+            dataSource: params.workflowId,
             latestReading: params.data,
           },
         },
         storageRef: {
-          cid: params.storageConfirmation.cid,
-          ipnsId: params.storageConfirmation.ipnsId,
+          bucketName: params.storageConfirmation.bucketName,
+          objectName: params.storageConfirmation.objectName,
         },
       };
 

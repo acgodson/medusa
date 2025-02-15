@@ -5,7 +5,7 @@ import {
 } from "../zee/agents";
 import { ServerWallet } from "../wallets/server-wallet";
 import { PrivyWalletConfig } from "../zee/tools/src/privyWalletTool";
-import { ZeeWorkflow } from "@covalenthq/ai-agent-sdk";
+import { ModelConfig, ZeeWorkflow } from "@covalenthq/ai-agent-sdk";
 
 interface MedusaWorkflowState {
   agent: string;
@@ -22,18 +22,23 @@ interface MedusaWorkflowState {
 
 export class MedusaBridge {
   private static instance: MedusaBridge;
-  private agents: Map<string, any> = new Map();
+  private model: ModelConfig;
   private serverWallet: ServerWallet;
+  private agents: Map<string, any> = new Map();
   private workflow: ZeeWorkflow;
 
   private constructor(
     private config: {
-      openAiKey: string;
-      privyConfig: PrivyWalletConfig;
-      rpcUrl: string;
-      lighthouseApiKey: string;
-      contractAddress: `0x${string}`;
       walletId: string;
+      rpcUrl: string;
+      chainId: string;
+      greenfieldRpcUrl: string;
+      greenfieldChainId: string;
+      adminAddress: string;
+      adminPrivateKey: string;
+      privyConfig: PrivyWalletConfig;
+      contractAddress: `0x${string}`;
+      llmAPIKey: string;
     }
   ) {
     this.serverWallet = new ServerWallet(
@@ -42,6 +47,12 @@ export class MedusaBridge {
       config.rpcUrl
     );
 
+    this.model = {
+      provider: "OPEN_AI",
+      name: "gpt-4o-mini",
+      apiKey: config.llmAPIKey,
+    };
+
     this.initializeAgents();
 
     this.workflow = new ZeeWorkflow({
@@ -49,8 +60,8 @@ export class MedusaBridge {
       output: "Process and analyze sensor data with storage confirmation",
       agents: {
         collector: this.agents.get("dataCollection"),
-        broadcaster: this.agents.get("broadcasting"),
-        analyzer: this.agents.get("response"),
+        // broadcaster: this.agents.get("broadcasting"),
+        // analyzer: this.agents.get("response"),
       },
     });
   }
@@ -59,42 +70,60 @@ export class MedusaBridge {
     this.agents.set(
       "dataCollection",
       new CollectionAgent({
-        openAiKey: this.config.openAiKey,
-        privyConfig: this.config.privyConfig,
-        lighthouseApiKey: this.config.lighthouseApiKey,
+        model: this.model,
         walletId: this.config.walletId,
+        rpcUrl: this.config.rpcUrl,
+        chainId: this.config.chainId,
+        greenfieldChainId: this.config.greenfieldChainId,
+        greenfieldRpcUrl: this.config.greenfieldRpcUrl,
+        adminAddress: this.config.adminAddress,
+        adminPrivateKey: this.config.adminPrivateKey,
+        serverWallet: this.serverWallet,
       })
     );
 
     this.agents.set(
       "broadcasting",
       new BroadcastingAgent({
-        openAiKey: this.config.openAiKey,
-        privyConfig: this.config.privyConfig,
-        lighthouseApiKey: this.config.lighthouseApiKey,
+        model: this.model,
+        walletId: this.config.walletId,
         rpcUrl: this.config.rpcUrl,
+        chainId: this.config.chainId,
         contractAddress: this.config.contractAddress,
+        adminAddress: this.config.adminAddress,
+        adminPrivateKey: this.config.adminPrivateKey,
+        serverWallet: this.serverWallet,
       })
     );
 
     this.agents.set(
       "response",
       new ResponseAgent({
-        openAiKey: this.config.openAiKey,
-        privyConfig: this.config.privyConfig,
+        model: this.model,
         rpcUrl: this.config.rpcUrl,
+        chainId: this.config.chainId,
+        greenfieldChainId: this.config.greenfieldChainId,
+        greenfieldRpcUrl: this.config.greenfieldRpcUrl,
+        walletId: this.config.walletId,
+        adminAddress: this.config.adminAddress,
+        adminPrivateKey: this.config.adminPrivateKey,
+        serverWallet: this.serverWallet,
       })
     );
   }
 
   static async connect(config: {
-    openAiKey: string;
-    privyConfig: PrivyWalletConfig;
-    rpcUrl: string;
-    lighthouseApiKey: string;
-    contractAddress: `0x${string}`;
+    workflowId: string;
     walletId: string;
-    workflowId: number;
+    rpcUrl: string;
+    chainId: string;
+    greenfieldRpcUrl: string;
+    greenfieldChainId: string;
+    adminAddress: string;
+    adminPrivateKey: string;
+    llmAPIKey: string;
+    contractAddress: `0x${string}`;
+    privyConfig: PrivyWalletConfig;
   }) {
     if (!MedusaBridge.instance) {
       MedusaBridge.instance = new MedusaBridge(config);
@@ -104,7 +133,12 @@ export class MedusaBridge {
 
   async executeWorkflow(params: {
     deviceId: string;
-    workflowId: number;
+    workflowId: string;
+    historicalData?: Array<{
+      temperature: number;
+      humidity: number;
+      timestamp: number;
+    }>;
     data: {
       temperature: number;
       humidity: number;
@@ -120,7 +154,7 @@ export class MedusaBridge {
             role: "function",
             name: "workflow_init",
             content: JSON.stringify({
-              deviceId: params.deviceId,
+              walletId: params.deviceId,
               workflowId: params.workflowId,
               contractAddress: params.contractAddress,
               data: params.data,
@@ -128,45 +162,48 @@ export class MedusaBridge {
           },
         ],
         status: "idle",
-        children: [], // Always initialize children as empty array
+        children: [],
       };
 
       console.log("Starting data collection...");
       const collectionResult = await this.agents.get("dataCollection").execute({
-        deviceId: params.deviceId,
+        walletId: params.deviceId,
         workflowId: params.workflowId,
         contractAddress: params.contractAddress,
         data: params.data,
       });
 
+      console.log(collectionResult);
       if (!collectionResult.success) {
         throw new Error("Data collection failed");
       }
 
       console.log("Starting data broadcasting...");
-      const broadcastResult = await this.agents.get("broadcasting").execute({
-        cid: collectionResult.storageResult.cid,
-        walletId: params.deviceId,
-        ipnsName: collectionResult.storageResult.ipnsName,
-        workflowId: params.workflowId,
-        contractAddress: params.contractAddress,
-      });
 
-      if (!broadcastResult.success) {
-        throw new Error("Broadcasting failed");
-      }
+      // const broadcastResult = await this.agents.get("broadcasting").execute({
+      //   cid: collectionResult.storageResult.cid,
+      //   walletId: params.deviceId,
+      //   ipnsName: collectionResult.storageResult.ipnsName,
+      //   workflowId: params.workflowId,
+      //   contractAddress: params.contractAddress,
+      // });
 
-      console.log("Starting data analysis...");
+      // if (!broadcastResult.success) {
+      //   throw new Error("Broadcasting failed");
+      // }
+
+      // console.log("Starting data analysis...");
       const analysisResult = await this.agents.get("response").execute({
         deviceId: params.deviceId,
         data: params.data,
+        historicalData: params.historicalData,
+        workflowId: params.workflowId,
         storageConfirmation: {
-          cid: collectionResult.storageResult.cid,
-          ipnsId: broadcastResult.ipnsGatewayUrl.split("/ipns/")[1],
+          bucketName: collectionResult.bucketName,
+          objectName: collectionResult.objectName,
         },
       });
 
-      // Create child states for each agent execution
       const collectionState: MedusaWorkflowState = {
         agent: "collector",
         status: "finished",
@@ -177,21 +214,21 @@ export class MedusaBridge {
             content: JSON.stringify(collectionResult),
           },
         ],
-        children: [], // Always include empty children array
+        children: [],
       };
 
-      const broadcastState: MedusaWorkflowState = {
-        agent: "broadcaster",
-        status: "finished",
-        messages: [
-          {
-            role: "function",
-            name: "data_broadcast",
-            content: JSON.stringify(broadcastResult),
-          },
-        ],
-        children: [], // Always include empty children array
-      };
+      // const broadcastState: MedusaWorkflowState = {
+      //   agent: "broadcaster",
+      //   status: "finished",
+      //   messages: [
+      //     {
+      //       role: "function",
+      //       name: "data_broadcast",
+      //       content: JSON.stringify(broadcastResult),
+      //     },
+      //   ],
+      //   children: [],
+      // };
 
       const analysisState: MedusaWorkflowState = {
         agent: "analyzer",
@@ -203,18 +240,18 @@ export class MedusaBridge {
             content: JSON.stringify(analysisResult),
           },
         ],
-        children: [], // Always include empty children array
+        children: [],
       };
 
-      // Create the final workflow state
       const workflowState: MedusaWorkflowState = {
         ...initialState,
         status: "finished",
         messages: [...initialState.messages],
-        children: [collectionState, broadcastState, analysisState],
+        children: [collectionState, analysisState],
       };
 
       console.log("Executing complete workflow...");
+
       const workflowResult = await ZeeWorkflow.run(
         this.workflow,
         workflowState as any
@@ -224,7 +261,7 @@ export class MedusaBridge {
         success: true,
         workflow: {
           collection: collectionResult,
-          broadcast: broadcastResult,
+          // broadcast: broadcastResult,
           analysis: analysisResult,
           workflowState: workflowResult,
         },
@@ -236,29 +273,6 @@ export class MedusaBridge {
         error:
           error instanceof Error ? error.message : "Unknown error occurred",
       };
-    }
-  }
-
-  async executeOperation(operation: string, params: any) {
-    const [system, agentType, action] = operation.split(".");
-
-    switch (system) {
-      case "zee":
-        const agent = this.agents.get(agentType);
-        if (!agent) {
-          throw new Error(`Unknown agent type: ${agentType}`);
-        }
-        return agent.execute(params);
-
-      case "cdp":
-        return this.serverWallet.executeOperation(
-          params.walletId,
-          params.contractAddress,
-          params.data
-        );
-
-      default:
-        throw new Error(`Unknown agent system: ${system}`);
     }
   }
 }

@@ -1,9 +1,10 @@
+"use client";
 import { Card, CardHeader, CardContent } from "../atoms";
 
-const ExplorerSkeleton = () => {
+const ExplorerSkeleton = ({ count }: { count: number }) => {
   return (
     <>
-      {Array(3)
+      {Array(count)
         .fill(null)
         .map((_, index) => (
           <Card

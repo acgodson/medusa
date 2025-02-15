@@ -1,136 +1,81 @@
-import { PrivyClient } from "@privy-io/server-auth";
 import { createPublicClient, encodeFunctionData, http } from "viem";
-import { createIPNSTool, createServerWalletTool } from "../../tools/";
 import { ZeeBaseAgent } from "../base";
 import RegistryArtifacts from "../../../../../../contracts/artifacts/MedusaRegistry.json";
-import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
+import { createPrivyWalletTool } from "../../tools/src/privyWalletTool";
 import { ServerWallet } from "../../../wallets/server-wallet";
-import { baseSepolia } from "viem/chains";
+import { bscTestnet } from "viem/chains";
+import { ModelConfig } from "@covalenthq/ai-agent-sdk";
+
+type BroadcastingConfig = {
+  model: ModelConfig;
+  rpcUrl: string;
+  chainId: string;
+  walletId: string;
+  adminAddress: string;
+  adminPrivateKey: string;
+  serverWallet: ServerWallet;
+  contractAddress: `0x${string}`;
+};
+
+type BroadCastingAgentResponse = {
+  success: boolean;
+  transactionHash?: string;
+  registrationTxHash?: string;
+  error?: string;
+};
+
+type ContractFunction = {
+  functionName: string;
+  args: any[];
+};
 
 export class BroadcastingAgent extends ZeeBaseAgent {
-  private privyServerWallet: ServerWallet;
   public contractAddress: `0x${string}`;
-  constructor(config: {
-    openAiKey: string;
-    privyConfig: PrivyWalletConfig;
-    lighthouseApiKey: string;
-    rpcUrl: string;
-    contractAddress: `0x${string}`;
-  }) {
-    const serverWallet = new ServerWallet(
-      config.privyConfig.appId,
-      config.privyConfig.appSecret,
-      config.rpcUrl
-    );
 
-    const CreateIPNSTool = createIPNSTool(config.lighthouseApiKey);
-    const CreateSmartWalletTool = createServerWalletTool(serverWallet);
+  constructor(config: BroadcastingConfig) {
+    const serverWalletTool = createPrivyWalletTool(
+      config.serverWallet,
+      config.walletId
+    );
 
     super({
       name: "Storage Broadcaster Agent",
-      description: "Agent for IPNS management and state broadcasting",
-      instructions: [
-        "1. Manage IPNS records via Lighthouse",
-        "2. Broadcast state updates using smart wallet",
-      ],
+      model: config.model,
+      description: "Agent for state broadcasting",
+      instructions: ["1. Broadcast state updates using server wallet"],
       tools: {
-        "smart-wallet": CreateSmartWalletTool,
-        storage: CreateIPNSTool,
+        "server-wallet": serverWalletTool,
       },
-      openAiKey: config.openAiKey,
     });
 
-    this.privyServerWallet = serverWallet;
     this.contractAddress = config.contractAddress;
   }
 
-  private async handleIpnsOperations(cid: string, ipnsName: string) {
-    try {
-      console.log("updating IPNS data:", { cid, ipnsName });
-
-      // Publish to IPNS
-      const publishResult = await this.zeeAgent.tools?.["storage"].execute({
-        operation: "publishRecord",
-        cid,
-        ipnsName,
-      });
-
-      console.log("Publish result:", publishResult);
-
-      //  Verify publish response
-      const publishResponse = JSON.parse(publishResult);
-      if (publishResponse.error) {
-        throw new Error(`Publish failed: ${publishResponse.error}`);
-      }
-
-      if (!publishResponse?.success && !publishResponse?.data) {
-        console.error("Invalid publish response:", publishResponse);
-        throw new Error("Failed to publish to IPNS: Invalid response");
-      }
-
-      return { ipnsName, ipnsId: publishResponse.data.Name };
-    } catch (error) {
-      console.error("IPNS operation error:", error);
-      throw new Error(
-        `IPNS operations failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
+  private async getWallet() {
+    const address = await this.zeeAgent.tools?.["server-wallet"].execute(
+      "getAddress"
+    );
+    const id = await this.zeeAgent.tools?.["server-wallet"].execute(
+      "getWalletId"
+    );
+    return { address, id };
   }
 
-  private async getWallet(privy: PrivyClient, id: string) {
-    const wallets = await privy.walletApi.getWallets({
-      chainType: "ethereum",
-    });
-    return wallets.data.find((wallet) => wallet.id === id);
-  }
-
-  // private async registerOnChain(walletId: string, workflowId: string) {
-  //   try {
-
-  //     console.log("Registering metadata on-chain...");
-
-  //     const data = encodeFunctionData({
-  //       abi: RegistryArtifacts.abi,
-  //       functionName: "submitRecord",
-  //       args: [walletId, workflowId],
-  //     });
-
-  //     // Execute contract call via smart wallet
-  //     const result = await this.zeeAgent.tools?.["smart-wallet"].execute({
-  //       operation: "broadcast",
-  //       walletId,
-  //       txData: {
-  //         contractAddress: this.contractAddress,
-  //         data,
-  //       },
-  //     });
-
-  //     const parsedResult = JSON.parse(result);
-  //     if (!parsedResult.success) {
-  //       throw new Error("Contract interaction failed");
-  //     }
-
-  //     return parsedResult.transactionHash;
-  //   } catch (error) {
-  //     console.error("Contract registration error:", error);
-  //     throw error;
-  //   }
-  // }
-
-  private async registerDevice(walletId: string, workflowId: string) {
+  private async transactionBuilder(
+    walletId: string,
+    contractFunction: ContractFunction,
+    operationName: string
+  ) {
     try {
-      console.log("Registering device...");
+      console.log(`Executing ${operationName}...`);
       const data = encodeFunctionData({
         abi: RegistryArtifacts.abi,
-        functionName: "registerDevice",
-        args: [BigInt(workflowId), walletId],
+        functionName: contractFunction.functionName,
+        args: contractFunction.args,
       });
 
-      // Execute contract call via smart wallet
-      const result = await this.zeeAgent.tools?.["smart-wallet"].execute({
-        operation: "broadcast",
+      const result = await this.zeeAgent.tools?.["server-wallet"].execute({
+        operation: "signTxn",
         walletId,
         txData: {
           contractAddress: this.contractAddress,
@@ -140,98 +85,72 @@ export class BroadcastingAgent extends ZeeBaseAgent {
 
       const parsedResult = JSON.parse(result);
       if (!parsedResult.success) {
-        throw new Error("Device registration failed");
+        throw new Error(`${operationName} failed`);
       }
 
       return parsedResult.transactionHash;
     } catch (error) {
-      console.error("Device registration error:", error);
+      console.error(`${operationName} error:`, error);
       throw error;
     }
+  }
+
+  private async readContract(contractFunction: ContractFunction) {
+    const publicClient = createPublicClient({
+      chain: bscTestnet,
+      transport: http(),
+    });
+
+    const workflow: any = await publicClient.readContract({
+      address: this.contractAddress as `0x${string}`,
+      abi: RegistryArtifacts.abi,
+      functionName: contractFunction.functionName,
+      args: contractFunction.args,
+    });
+    return workflow;
+  }
+
+  private async registerDevice(walletId: string, workflowId: string) {
+    return this.transactionBuilder(
+      walletId,
+      {
+        functionName: "registerDevice",
+        args: [BigInt(workflowId), walletId],
+      },
+      "Device registration"
+    );
   }
 
   private async submitRecord(walletId: string, workflowId: string) {
-    try {
-      console.log("Submitting record...");
-      const data = encodeFunctionData({
-        abi: RegistryArtifacts.abi,
+    return this.transactionBuilder(
+      walletId,
+      {
         functionName: "submitRecord",
         args: [walletId, BigInt(workflowId)],
-      });
-
-      // Execute contract call via smart wallet
-      const result = await this.zeeAgent.tools?.["smart-wallet"].execute({
-        operation: "broadcast",
-        walletId,
-        txData: {
-          contractAddress: this.contractAddress,
-          data,
-        },
-      });
-
-      const parsedResult = JSON.parse(result);
-      if (!parsedResult.success) {
-        throw new Error("Record submission failed");
-      }
-
-      return parsedResult.transactionHash;
-    } catch (error) {
-      console.error("Record submission error:", error);
-      throw error;
-    }
+      },
+      "Record submission"
+    );
   }
 
   async execute(params: {
-    cid: string;
-    walletId: string;
-    ipnsName: string;
     workflowId: string;
-  }): Promise<{
-    success: boolean;
-    ipnsGatewayUrl?: string;
-    transactionHash?: string;
-    registrationTxHash?: string;
-    error?: string;
-  }> {
+    objectName: string;
+  }): Promise<BroadCastingAgentResponse> {
     try {
-      // First, validate input parameters
-      if (
-        !params.walletId ||
-        !params.workflowId ||
-        !this.contractAddress ||
-        !params.cid ||
-        !params.ipnsName
-      ) {
+      if (!params.workflowId || !params.objectName || !this.contractAddress) {
         throw new Error("Missing required parameters");
       }
 
-      console.log("Workflow IPNS operations for CID:", params.cid);
+      console.log("Workflow operations for object:", params.objectName);
 
-      // Handle IPNS operations
-      const { ipnsName, ipnsId } = await this.handleIpnsOperations(
-        params.cid,
-        params.ipnsName
-      );
-
-      const activeWallet = await this.getWallet(
-        this.privyServerWallet.privy,
-        params.walletId
-      );
+      const activeWallet = await this.getWallet();
       console.log("Active wallet:", activeWallet);
 
       if (!activeWallet) {
         throw new Error("Unable to fetch server wallet");
       }
 
-      // Create a public client to read contract state
-      const publicClient = createPublicClient({
-        chain: baseSepolia,
-        transport: http(),
-      });
-
-      const workflow: any = await publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: RegistryArtifacts.abi,
+      const workflow: any = await this.readContract({
         functionName: "workflows",
         args: [BigInt(params.workflowId)],
       });
@@ -239,16 +158,12 @@ export class BroadcastingAgent extends ZeeBaseAgent {
       console.log("Workflow status:", workflow);
 
       if (!workflow || !workflow[3]) {
-        // check active status
         throw new Error("Workflow is not active");
       }
 
-      // Check registration status
-      const isRegistered = await publicClient.readContract({
-        address: this.contractAddress as `0x${string}`,
-        abi: RegistryArtifacts.abi,
+      const isRegistered = await this.readContract({
         functionName: "isDeviceRegistered",
-        args: [params.walletId],
+        args: [activeWallet.id],
       });
 
       console.log("Device registration status:", isRegistered);
@@ -256,18 +171,15 @@ export class BroadcastingAgent extends ZeeBaseAgent {
       let registrationTxHash;
       let submissionTxHash;
 
-      // If not registered, register first
       if (!isRegistered) {
         console.log("Device not registered, registering now...");
         registrationTxHash = await this.registerDevice(
           activeWallet.id,
           params.workflowId
         );
-        // Wait a bit for the registration to be processed
         await new Promise((resolve) => setTimeout(resolve, 5000));
       }
 
-      // Now submit the record
       submissionTxHash = await this.submitRecord(
         activeWallet.id,
         params.workflowId
@@ -275,7 +187,6 @@ export class BroadcastingAgent extends ZeeBaseAgent {
 
       return {
         success: true,
-        ipnsGatewayUrl: `https://gateway.lighthouse.storage/ipns/${ipnsId}`,
         transactionHash: submissionTxHash,
         registrationTxHash,
       };

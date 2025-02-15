@@ -63,32 +63,32 @@ export function JoinWorkflowDialog({
     if (!connectedWallet) return;
     setError(null); // Reset error state
 
-    try {
-      const response = await registerDevice.mutateAsync({
-        workflowId,
-      });
+    // try {
+    //   const response = await registerDevice.mutateAsync({
+    //     workflowId,
+    //   });
 
-      if (response) {
-        const provider = await connectedWallet.getEthereumProvider();
-        const transactionRequest = {
-          to: getAddress(response.data.contractAddress!),
-          from: getAddress(connectedWallet.address),
-          data: response.data.data,
-          value: 0,
-        };
+    //   if (response) {
+    //     const provider = await connectedWallet.getEthereumProvider();
+    //     const transactionRequest = {
+    //       to: getAddress(response.data.contractAddress!),
+    //       from: getAddress(connectedWallet.address),
+    //       data: response.data.data,
+    //       value: 0,
+    //     };
 
-        const hash = await provider.request({
-          method: "eth_sendTransaction",
-          params: [transactionRequest],
-        });
+    //     const hash = await provider.request({
+    //       method: "eth_sendTransaction",
+    //       params: [transactionRequest],
+    //     });
 
-        setDeviceAddress(response.address);
-        setDeviceId(response.walletId);
-        setTransactionHash(hash);
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to register device");
-    }
+    //     setDeviceAddress(response.address);
+    //     setDeviceId(response.walletId);
+    //     setTransactionHash(hash);
+    //   }
+    // } catch (err: any) {
+    //   setError(err.message || "Failed to register device");
+    // }
   };
 
   const handleFundDevice = async () => {
