@@ -1,12 +1,20 @@
 import { PrivyClient } from "@privy-io/server-auth";
 import { createViemAccount } from "@privy-io/server-auth/viem";
-import { Address, Client, createPublicClient, http, parseGwei } from "viem";
-import { baseSepolia } from "viem/chains";
 import {
-  createBundlerClient,
-  toCoinbaseSmartAccount,
-  createPaymasterClient,
-} from "viem/account-abstraction";
+  Address,
+  Client,
+  createPublicClient,
+  createWalletClient,
+  http,
+} from "viem";
+import { bscTestnet } from "viem/chains";
+import {
+  BiconomySmartAccountV2,
+  createPaymaster,
+  createSmartAccountClient,
+  Paymaster,
+  PaymasterMode,
+} from "@biconomy/account";
 
 export class ServerWallet {
   public privy: PrivyClient;
@@ -16,7 +24,7 @@ export class ServerWallet {
   constructor(appId: string, appSecret: string, rpcUrl: string) {
     this.privy = new PrivyClient(appId, appSecret);
     this.client = createPublicClient({
-      chain: baseSepolia,
+      chain: bscTestnet,
       transport: http(rpcUrl),
     });
   }
@@ -33,21 +41,37 @@ export class ServerWallet {
           privy: this.privy,
         });
 
-        console.log("Viem account created:", {
-          address: viemAccount.address,
-          type: viemAccount.type,
+        // Create a wallet client from the viem account
+        const walletClient = createWalletClient({
+          account: viemAccount,
+          chain: bscTestnet,
+          transport: http(),
         });
 
-        const smartAccount = await toCoinbaseSmartAccount({
-          client: this.client,
-          owners: [viemAccount], // Use the viem account as the signer
+        console.log("Wallet client created for address:", viemAccount.address);
+
+        if (
+          !process.env.BICONOMY_BUNDLER_URL ||
+          !process.env.BICONOMY_PAYMASTER_URL
+        ) {
+          throw new Error("Missing Biconomy configuration");
+        }
+
+        const biconomyPaymaster = await createPaymaster({
+          paymasterUrl: process.env.BICONOMY_PAYMASTER_URL!,
+        });
+        // Create Biconomy smart account
+        const smartAccount = await createSmartAccountClient({
+          signer: walletClient,
+          bundlerUrl: process.env.BICONOMY_BUNDLER_URL,
+          biconomyPaymasterApiKey: process.env.BICONOMY_PAYMASTER_API_KEY,
+          chainId: bscTestnet.id,
+          paymasterUrl: process.env.BICONOMY_PAYMASTER_URL,
+          paymaster: biconomyPaymaster,
         });
 
-        console.log("Smart account created:", {
-          address: smartAccount.address,
-          type: smartAccount.type,
-          methods: Object.keys(smartAccount),
-        });
+        const smartAccountAddress = await smartAccount.getAccountAddress();
+        console.log("Smart account created at address:", smartAccountAddress);
 
         return smartAccount;
       })();
@@ -61,57 +85,46 @@ export class ServerWallet {
     contractAddress: `0x${string}`,
     data: `0x${string}`
   ) {
-    const smartAccount = await this.createSmartAccount(walletId, address);
-
-    const paymasterClient = createPaymasterClient({
-      transport: http(
-        `https://api.developer.coinbase.com/rpc/v1/base-sepolia/${process.env.NEXT_PUBLIC_COINBASE_RPC}`
-      ),
-    });
-
-    const bundlerClient = createBundlerClient({
-      chain: baseSepolia,
-      paymaster: paymasterClient,
-      transport: http(
-        `https://api.developer.coinbase.com/rpc/v1/base-sepolia/${process.env.NEXT_PUBLIC_COINBASE_RPC}`
-      ),
-    });
-
-    const callGasLimit = parseGwei("0.005");
-    const verificationGasLimit = parseGwei("0.003");
-    const preVerificationGas = parseGwei("0.002");
-    const maxFeePerGas = parseGwei("0.25");
-    const maxPriorityFeePerGas = parseGwei("0.05");
+    const smartAccount: BiconomySmartAccountV2 = await this.createSmartAccount(
+      walletId,
+      address
+    );
 
     try {
-      console.log("Preparing user operation with params:", {
-        smartAccountAddress: smartAccount.address,
+      console.log("Preparing transaction with params:", {
+        smartAccountAddress: await smartAccount.getAccountAddress(),
         contractAddress,
         dataLength: data.length,
       });
 
-      const preparedOp = await bundlerClient.prepareUserOperation({
-        account: smartAccount,
-        calls: [{ to: contractAddress, data }],
-        maxFeePerGas,
-        maxPriorityFeePerGas,
-        callGasLimit,
-        verificationGasLimit,
-        preVerificationGas,
-      });
+      const tx = {
+        to: contractAddress as `0x${string}`,
+        data: data,
+      };
+      const userOpParams = {
+        paymasterServiceData: {
+          mode: PaymasterMode.SPONSORED,
+          calculateGasLimits: true,
+        },
+      };
+      console.log("Building user operation with params:", userOpParams);
 
-      const signature = await smartAccount.signUserOperation(preparedOp);
+      const smartAccountAddress = await smartAccount.getAccountAddress();
 
-      return await bundlerClient.sendUserOperation({
-        account: smartAccount,
-        calls: [{ to: contractAddress, data }],
-        maxFeePerGas,
-        maxPriorityFeePerGas,
-        callGasLimit,
-        verificationGasLimit,
-        preVerificationGas,
-        signature,
-      });
+      // Build the user operation
+      const userOp = await smartAccount.buildUserOp([tx]);
+
+      // Send the user operation
+      const userOpResponse = await smartAccount.sendUserOp(userOp);
+
+      // Wait for transaction
+      const transactionDetails = await userOpResponse.wait();
+
+      return {
+        userOpHash: userOpResponse.userOpHash,
+        transactionHash: transactionDetails.receipt.transactionHash,
+        smartAccountAddress,
+      };
     } catch (error) {
       console.error("Failed to send user operation:", error);
       throw error;
