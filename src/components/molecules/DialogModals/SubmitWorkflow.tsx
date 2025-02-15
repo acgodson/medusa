@@ -7,11 +7,10 @@ import {
 } from "@/components/atoms/dialog";
 import { Button } from "@/components/atoms/button";
 import { Input } from "@/components/atoms/input";
-import { Alert, AlertTitle, AlertDescription, Spinner } from "../atoms";
+import { Alert, AlertTitle, AlertDescription, Spinner } from "../../atoms";
 import { trpc } from "@/trpc/client";
 import { usePrivy } from "@privy-io/react-auth";
-import { ExternalLink } from "lucide-react";
-import { WorkflowResultsDrawer } from "./ResultSection";
+import { WorkflowResultsDrawer } from "../ResultSection";
 import { WorkflowResultsProps } from "@/lib/medusa/bridge/types";
 
 interface SubmitRecordDialogProps {

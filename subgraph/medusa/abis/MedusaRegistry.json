@@ -1,0 +1,1040 @@
+[
+  { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" },
+  { "inputs": [], "name": "AccessControlBadConfirmation", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "account", "type": "address" },
+      { "internalType": "bytes32", "name": "neededRole", "type": "bytes32" }
+    ],
+    "name": "AccessControlUnauthorizedAccount",
+    "type": "error"
+  },
+  { "inputs": [], "name": "CleanupInProgress", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "message", "type": "string" }
+    ],
+    "name": "GenericError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "message", "type": "string" }
+    ],
+    "name": "InvalidInput",
+    "type": "error"
+  },
+  { "inputs": [], "name": "InvalidPartitionIndex", "type": "error" },
+  { "inputs": [], "name": "LockTimeoutActive", "type": "error" },
+  { "inputs": [], "name": "MaxPartitionsReached", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "message", "type": "string" }
+    ],
+    "name": "SecurityError",
+    "type": "error"
+  },
+  { "inputs": [], "name": "StorageNotLocked", "type": "error" },
+  { "inputs": [], "name": "TimeoutNotElapsed", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "message", "type": "string" }
+    ],
+    "name": "ValidationError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "message", "type": "string" }
+    ],
+    "name": "ValidationError",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "message", "type": "string" }
+    ],
+    "name": "WorkflowError",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "walletId",
+        "type": "string"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "deviceAddress",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "blacklister",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "status",
+        "type": "bool"
+      }
+    ],
+    "name": "DeviceBlacklisted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "string",
+        "name": "walletId",
+        "type": "string"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "lastActiveTimestamp",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "cleanupTimestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "DeviceCleanedUp",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "walletId",
+        "type": "string"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "deregistrar",
+        "type": "address"
+      }
+    ],
+    "name": "DeviceDeregistered",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "partitionIndex",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "startBlock",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "endBlock",
+        "type": "uint256"
+      }
+    ],
+    "name": "DevicePartitionCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "partitionIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "DevicePartitionFilled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "walletId",
+        "type": "string"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "deviceAddress",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "registrar",
+        "type": "address"
+      }
+    ],
+    "name": "DeviceRegistered",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "walletId",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "partition",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "DeviceRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Paused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "string",
+        "name": "walletId",
+        "type": "string"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "counter",
+        "type": "uint256"
+      }
+    ],
+    "name": "RecordUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "role",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "previousAdminRole",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "newAdminRole",
+        "type": "bytes32"
+      }
+    ],
+    "name": "RoleAdminChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "role",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "RoleGranted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "role",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "RoleRevoked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "deletedCount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "StorageCleanup",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      }
+    ],
+    "name": "StorageLocked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      }
+    ],
+    "name": "StorageUnlocked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Unpaused",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      }
+    ],
+    "name": "WorkflowArchived",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "schemaId",
+        "type": "string"
+      }
+    ],
+    "name": "WorkflowCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newInterval",
+        "type": "uint256"
+      }
+    ],
+    "name": "WorkflowExecutionIntervalUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "workflowId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "bool",
+        "name": "isPaused",
+        "type": "bool"
+      }
+    ],
+    "name": "WorkflowPauseToggled",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "DEFAULT_ADMIN_ROLE",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" }
+    ],
+    "name": "archiveWorkflow",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "cleanupThresholdPeriod",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "wid", "type": "uint256" },
+          { "internalType": "string", "name": "title", "type": "string" },
+          { "internalType": "string", "name": "description", "type": "string" },
+          { "internalType": "string", "name": "schemaId", "type": "string" },
+          {
+            "internalType": "uint256",
+            "name": "executionInterval",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IWorkflow.CreateWorkflowInput",
+        "name": "input",
+        "type": "tuple"
+      }
+    ],
+    "name": "createWorkflow",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" },
+      { "internalType": "string", "name": "walletId", "type": "string" }
+    ],
+    "name": "deregisterDevice",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "devStore",
+    "outputs": [
+      { "internalType": "bool", "name": "locked", "type": "bool" },
+      { "internalType": "uint256", "name": "lockTime", "type": "uint256" },
+      { "internalType": "uint256", "name": "totalDevs", "type": "uint256" },
+      { "internalType": "uint256", "name": "activeIdx", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" }
+    ],
+    "name": "forceUnlock",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "offset", "type": "uint256" },
+      { "internalType": "uint256", "name": "limit", "type": "uint256" },
+      { "internalType": "address", "name": "adminAddress", "type": "address" }
+    ],
+    "name": "getAllWorkflows",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "id", "type": "uint256" },
+          { "internalType": "string", "name": "title", "type": "string" },
+          { "internalType": "bool", "name": "isArchived", "type": "bool" },
+          { "internalType": "bool", "name": "isPaused", "type": "bool" },
+          {
+            "internalType": "uint256",
+            "name": "contributorCount",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IWorkflow.WorkflowListItem[]",
+        "name": "workflows",
+        "type": "tuple[]"
+      },
+      { "internalType": "uint256", "name": "total", "type": "uint256" },
+      { "internalType": "bool", "name": "hasMore", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "adminAddress", "type": "address" }
+    ],
+    "name": "getArchivedWorkflowCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "offset", "type": "uint256" },
+      { "internalType": "uint256", "name": "limit", "type": "uint256" },
+      { "internalType": "address", "name": "adminAddress", "type": "address" }
+    ],
+    "name": "getArchivedWorkflows",
+    "outputs": [
+      { "internalType": "uint256[]", "name": "workflows", "type": "uint256[]" },
+      { "internalType": "uint256", "name": "total", "type": "uint256" },
+      { "internalType": "bool", "name": "hasMore", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" }
+    ],
+    "name": "getDetailedWorkflow",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "id", "type": "uint256" },
+          { "internalType": "string", "name": "title", "type": "string" },
+          { "internalType": "string", "name": "description", "type": "string" },
+          {
+            "internalType": "uint256",
+            "name": "contributorCount",
+            "type": "uint256"
+          },
+          { "internalType": "uint256", "name": "timestamp", "type": "uint256" },
+          {
+            "internalType": "enum IWorkflow.WorkflowStatus",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deviceLimit",
+            "type": "uint256"
+          },
+          { "internalType": "string", "name": "schemaId", "type": "string" },
+          {
+            "internalType": "uint256",
+            "name": "partitionSize",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "executionInterval",
+            "type": "uint256"
+          },
+          { "internalType": "address", "name": "owner", "type": "address" }
+        ],
+        "internalType": "struct IWorkflow.Workflow",
+        "name": "workflow",
+        "type": "tuple"
+      },
+      { "internalType": "bool", "name": "isArchived", "type": "bool" },
+      { "internalType": "bool", "name": "isPaused", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" },
+      { "internalType": "string", "name": "walletId", "type": "string" }
+    ],
+    "name": "getDevice",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "string", "name": "walletId", "type": "string" },
+          {
+            "internalType": "address",
+            "name": "deviceAddress",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "registeredAt",
+            "type": "uint256"
+          },
+          { "internalType": "bool", "name": "blacklisted", "type": "bool" },
+          { "internalType": "uint256", "name": "lastActive", "type": "uint256" }
+        ],
+        "internalType": "struct IMedusaStorage.Device",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "deviceAddress", "type": "address" }
+    ],
+    "name": "getDeviceExecution",
+    "outputs": [
+      { "internalType": "uint256", "name": "count", "type": "uint256" },
+      { "internalType": "uint256", "name": "lastExecuted", "type": "uint256" },
+      { "internalType": "bool", "name": "isActive", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" }
+    ],
+    "name": "getRoleAdmin",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" },
+      { "internalType": "uint256", "name": "partitionIndex", "type": "uint256" }
+    ],
+    "name": "getWorkflowDevices",
+    "outputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "walletId",
+                "type": "string"
+              },
+              {
+                "internalType": "address",
+                "name": "deviceAddress",
+                "type": "address"
+              },
+              {
+                "internalType": "uint256",
+                "name": "registeredAt",
+                "type": "uint256"
+              },
+              { "internalType": "bool", "name": "blacklisted", "type": "bool" },
+              {
+                "internalType": "uint256",
+                "name": "lastActive",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IMedusaStorage.Device[]",
+            "name": "devices",
+            "type": "tuple[]"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalPartitions",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "currentPartition",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalDevices",
+            "type": "uint256"
+          },
+          { "internalType": "bool", "name": "hasMore", "type": "bool" }
+        ],
+        "internalType": "struct IMedusaStorage.PaginatedDevices",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" }
+    ],
+    "name": "getWorkflowInfo",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint256", "name": "id", "type": "uint256" },
+          { "internalType": "string", "name": "title", "type": "string" },
+          { "internalType": "string", "name": "description", "type": "string" },
+          {
+            "internalType": "uint256",
+            "name": "contributorCount",
+            "type": "uint256"
+          },
+          { "internalType": "uint256", "name": "timestamp", "type": "uint256" },
+          {
+            "internalType": "enum IWorkflow.WorkflowStatus",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deviceLimit",
+            "type": "uint256"
+          },
+          { "internalType": "string", "name": "schemaId", "type": "string" },
+          {
+            "internalType": "uint256",
+            "name": "partitionSize",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "executionInterval",
+            "type": "uint256"
+          },
+          { "internalType": "address", "name": "owner", "type": "address" }
+        ],
+        "internalType": "struct IWorkflow.Workflow",
+        "name": "workflow",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalPartitions",
+        "type": "uint256"
+      },
+      { "internalType": "uint256", "name": "totalDevices", "type": "uint256" },
+      {
+        "internalType": "uint256[]",
+        "name": "devicesPerPartition",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "grantRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "hasRole",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "walletId", "type": "string" }
+    ],
+    "name": "isDeviceRegistered",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "walletId", "type": "string" }
+    ],
+    "name": "isRegistrationInProgress",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "name": "partIndex",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "pause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" },
+      { "internalType": "string", "name": "walletId", "type": "string" },
+      { "internalType": "address", "name": "deviceAddress", "type": "address" }
+    ],
+    "name": "registerDevice",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
+      {
+        "internalType": "address",
+        "name": "callerConfirmation",
+        "type": "address"
+      }
+    ],
+    "name": "renounceRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "role", "type": "bytes32" },
+      { "internalType": "address", "name": "account", "type": "address" }
+    ],
+    "name": "revokeRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "newThreshold", "type": "uint256" }
+    ],
+    "name": "setCleanupThreshold",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "walletId", "type": "string" },
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" }
+    ],
+    "name": "submitRecord",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes4", "name": "interfaceId", "type": "bytes4" }
+    ],
+    "name": "supportsInterface",
+    "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "walletId", "type": "string" }
+    ],
+    "name": "toggleDeviceBlacklist",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" }
+    ],
+    "name": "toggleWorkflowPause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "newAdmin", "type": "address" }
+    ],
+    "name": "transferAdminRole",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "unpause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "workflowId", "type": "uint256" },
+      { "internalType": "uint256", "name": "newInterval", "type": "uint256" }
+    ],
+    "name": "updateWorkflowExecutionInterval",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

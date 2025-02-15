@@ -51,7 +51,7 @@ export const useWorkflow = () => {
   const { wallets, ready } = useWallets();
 
   const connectedWallet = wallets.find(
-    (wallet) => wallet.walletClientType !== "privy"
+    (wallet: any) => wallet.walletClientType !== "privy"
   );
 
   // Use the same query pattern as in your page
@@ -74,29 +74,42 @@ export const useWorkflow = () => {
     },
   });
 
-  const handleSubmit = async () => {
-    if (!connectedWallet || !ready) {
-      console.log("no wallet detected");
-      return;
-    }
-    const response = await createWorkflow.mutateAsync({
-      schemaID: "",
-    });
+  const handleSubmit = async (formData: any) => {
+    try {
+      if (!connectedWallet || !ready) {
+        console.log("no wallet detected");
+        throw new Error("no wallets connected");
+      }
 
-    if (response && response.data.contractAddress) {
-      const provider = await connectedWallet.getEthereumProvider();
-      const transactionRequest = {
-        to: getAddress(response.data.contractAddress),
-        from: getAddress(connectedWallet.address),
-        data: response.data.data,
-        value: 0,
-      };
-      const transactionHash = await provider.request({
-        method: "eth_sendTransaction",
-        params: [transactionRequest],
+      console.log(formData);
+      if (!formData.title || !formData.description || !formData.schemaId) {
+        throw new Error("invalid inputs");
+      }
+      const response = await createWorkflow.mutateAsync({
+        title: formData.title,
+        description: formData.description,
+        executionInterval: formData.executionInterval,
+        creator: connectedWallet.address,
+        schemaId: formData.schemaId,
       });
 
-      console.log(transactionHash);
+      if (response && response.data.contractAddress) {
+        const provider = await connectedWallet.getEthereumProvider();
+        const transactionRequest = {
+          to: getAddress(response.data.contractAddress),
+          from: getAddress(connectedWallet.address),
+          data: response.data.data,
+          value: 0,
+        };
+        const transactionHash = await provider.request({
+          method: "eth_sendTransaction",
+          params: [transactionRequest],
+        });
+
+        console.log(transactionHash);
+      }
+    } catch (e) {
+      console.log(e);
     }
   };
 

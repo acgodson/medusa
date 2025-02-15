@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { customAlphabet } from "nanoid";
 import { baseProcedure, createTRPCRouter } from "../init";
 import { MedusaBridge } from "@/lib/medusa/bridge/core";
 import RegistryArtifacts from "../../../contracts/artifacts/MedusaRegistry.json";
@@ -25,89 +26,17 @@ import { GreenfieldStorage } from "@/lib/medusa/zee/tools/src/GreenfieldStorage"
 import { ServerWallet } from "@/lib/medusa/wallets/server-wallet";
 import { ServerWallet as ServerSmartWallet } from "@/lib/medusa/wallets/server-smart-wallet";
 import { createViemAccount } from "@privy-io/server-auth/viem";
-import {
-  BiconomySmartAccountV2,
-  createPaymaster,
-  PaymasterMode,
-  SponsorUserOperationDto,
-} from "@biconomy/account";
+import { BiconomySmartAccountV2 } from "@biconomy/account";
+
+const generateDigitsSlug = customAlphabet("0123456789", 4);
 
 const createWorkflowInput = z.object({
-  wid: z.string(), // Will be converted to BigInt
   title: z.string(),
   description: z.string(),
-  creator: z.string(), // Address
+  creator: z.string(),
   schemaId: z.string(),
-  registrar: z.string(), // Address
-  walletId: z.string(),
-  address: z.string(),
+  executionInterval: z.number(),
 });
-
-async function debugSignature(
-  workflowId: bigint,
-  walletId: string,
-  deviceAddress: `0x${string}`,
-  nonce: bigint,
-  signature: `0x${string}`,
-  smartAccountAddress?: string | undefined
-) {
-  const encodedData = encodeAbiParameters(
-    [
-      { type: "uint256" },
-      { type: "string" },
-      { type: "address" },
-      { type: "uint256" },
-    ],
-    [workflowId, walletId, deviceAddress, nonce] as const
-  );
-
-  const messageHash = keccak256(encodedData);
-  const prefixedHash = hashMessage(messageHash);
-
-  console.log({
-    encodedData,
-    messageHash,
-    prefixedHash,
-    signature,
-    smartAccountAddress,
-  });
-
-  // If we have a smart account address, just return the comparison
-  if (smartAccountAddress) {
-    return {
-      recoveredAddress: "N/A - Smart Account Signature",
-      deviceAddress,
-      smartAccountAddress,
-      matches: true, // Smart account signatures are validated differently
-    };
-  }
-
-  try {
-    // Only try recovering for EOA signatures
-    const recoveredAddress = await recoverMessageAddress({
-      message: {
-        raw: messageHash,
-      },
-      signature,
-    });
-
-    console.log("Recovered signer:", recoveredAddress);
-    console.log("Expected signer:", deviceAddress);
-    console.log(
-      "Addresses match:",
-      recoveredAddress.toLowerCase() === deviceAddress.toLowerCase()
-    );
-
-    return {
-      recoveredAddress,
-      deviceAddress,
-      matches: recoveredAddress.toLowerCase() === deviceAddress.toLowerCase(),
-    };
-  } catch (error) {
-    console.error("Signature recovery failed:", error);
-    throw error;
-  }
-}
 
 export const appRouter = createTRPCRouter({
   executeWorkflow: baseProcedure
@@ -155,40 +84,25 @@ export const appRouter = createTRPCRouter({
     }),
 
   createWorkflow: baseProcedure
-    .input(WorkFlowCreationIput)
+    .input(createWorkflowInput)
     .mutation(async ({ input }) => {
       try {
-        const lighthouse = new LighthouseAPI(process.env.LIGHTHOUSE_API_KEY!);
+        // Generate a 4-digit workflow ID
+        const wid = generateDigitsSlug();
+        console.log("Generated Workflow ID:", wid.toString());
 
-        const schema = {
-          title: "",
-          description: "",
-          items: [],
-        };
-
-        const dataToUpload = JSON.stringify({
-          ...schema,
-          timestamp: Date.now(),
-        });
-
-        console.log("Attempting upload to Lighthouse...");
-        const uploadResponse = await lighthouse.uploadText(dataToUpload);
-
-        if (!uploadResponse?.Hash) {
-          console.error("Invalid upload response:", uploadResponse);
-          throw new Error("Upload failed: No hash returned from Lighthouse");
-        }
-
-        const cid = uploadResponse.Hash;
-        console.log("Upload successful, CID:", cid);
-
-        const result = await lighthouse.handleIpnsOperations(cid);
-        console.log("IPNS operations result:", result);
+        const workflowInput = [
+          wid,
+          input.title,
+          input.description,
+          input.schemaId,
+          BigInt(input.executionInterval),
+        ];
 
         const data = encodeFunctionData({
           abi: RegistryArtifacts.abi,
           functionName: "createWorkflow",
-          args: [result.ipnsName, result.ipnsId],
+          args: [workflowInput],
         });
 
         const txData = {
@@ -370,152 +284,6 @@ export const appRouter = createTRPCRouter({
       }
     }),
 
-  getSig: baseProcedure
-    .input(
-      z.object({
-        workflowId: z.string(),
-        walletId: z.string(),
-        address: z.string(),
-        nonce: z.number(),
-      })
-    )
-    .mutation(async ({ input }) => {
-      const encodedData = encodeAbiParameters(
-        [
-          { type: "uint256" },
-          { type: "string" },
-          { type: "address" },
-          { type: "uint256" },
-        ],
-        [
-          BigInt(input.workflowId),
-          input.walletId,
-          getAddress(input.address),
-          BigInt(input.nonce),
-        ]
-      );
-
-      const messageHash = keccak256(encodedData);
-      console.log("Message to sign:", messageHash);
-
-      const sW = new ServerWallet(
-        process.env.PRIVY_APP_ID!,
-        process.env.PRIVY_APP_SECRET!,
-        bscTestnet.rpcUrls.default.http[0]
-      );
-
-      const account = await createViemAccount({
-        walletId: input.walletId,
-        address: input.address as any,
-        privy: sW.privy,
-      });
-
-      const client = createWalletClient({
-        account,
-        chain: bscTestnet,
-        transport: http(),
-      });
-
-      const signature: any = await client.signMessage({ message: messageHash });
-
-      if (!signature) {
-        throw new Error("no signature returned");
-      }
-
-      const s = await debugSignature(
-        BigInt(input.workflowId),
-        input.walletId,
-        getAddress(input.address),
-        BigInt(input.nonce),
-        signature
-      );
-
-      return {
-        messageHash,
-        signature,
-        encoded: encodedData,
-        debug: s,
-      };
-    }),
-
-  getSmartAccountSig: baseProcedure
-    .input(
-      z.object({
-        workflowId: z.string(),
-        walletId: z.string(),
-        address: z.string(),
-        nonce: z.number(),
-      })
-    )
-    .mutation(async ({ input }) => {
-      try {
-        const encodedData = encodeAbiParameters(
-          [
-            { type: "uint256" },
-            { type: "string" },
-            { type: "address" },
-            { type: "uint256" },
-          ],
-          [
-            BigInt(input.workflowId),
-            input.walletId,
-            getAddress(input.address),
-            BigInt(input.nonce),
-          ]
-        );
-
-        const messageHash = keccak256(encodedData);
-        console.log("Message to sign:", messageHash);
-
-        // Initialize ServerWallet
-        const serverWallet = new ServerSmartWallet(
-          process.env.PRIVY_APP_ID!,
-          process.env.PRIVY_APP_SECRET!,
-          bscTestnet.rpcUrls.default.http[0]
-        );
-
-        // Create smart account
-        const smartAccount: BiconomySmartAccountV2 =
-          await serverWallet.createSmartAccount(
-            input.walletId,
-            getAddress(input.address)
-          );
-
-        // Get smart account address
-        const smartAccountAddress = await smartAccount.getAccountAddress();
-        console.log("Smart Account Address:", smartAccountAddress);
-
-        // Sign the message using the smart account
-        const signature = await smartAccount.signMessage(messageHash);
-        console.log("Signature:", signature);
-
-        if (!signature) {
-          throw new Error("No signature returned from smart account");
-        }
-
-        // Debug the signature
-        const debug = await debugSignature(
-          BigInt(input.workflowId),
-          input.walletId,
-          getAddress(input.address),
-          BigInt(input.nonce),
-          signature as `0x${string}`,
-          smartAccountAddress
-        );
-
-        return {
-          messageHash,
-          signature,
-          encoded: encodedData,
-          smartAccountAddress,
-          debug,
-        };
-      } catch (error) {
-        console.error("Smart account signature failed:", error);
-        throw error;
-      }
-    }),
-
   createWorkflowWithSmartAccount: baseProcedure
     .input(createWorkflowInput)
     .mutation(async ({ input }) => {
@@ -542,6 +310,7 @@ export const appRouter = createTRPCRouter({
             },
           ],
         });
+
         const txn = await serverWallet.executeOperation(
           input.walletId,
           input.address as `0x${string}`,

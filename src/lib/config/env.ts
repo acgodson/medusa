@@ -3,7 +3,7 @@ import { twMerge } from "tailwind-merge";
 
 /* eslint-disable */
 import { createClient, http } from "viem";
-import {  bsc, bscTestnet } from "viem/chains";
+import { baseSepolia, bsc, bscTestnet } from "viem/chains";
 import { createConfig } from "@privy-io/wagmi";
 
 export function cn(...inputs: ClassValue[]) {
@@ -13,7 +13,7 @@ export function cn(...inputs: ClassValue[]) {
 export const privyConfig = {
   loginMethods: ["wallet", "email", "google"],
   defaultChain: bscTestnet,
-  supportedChains: [bscTestnet, bsc],
+  supportedChains: [bscTestnet, bsc, baseSepolia],
   appearance: {
     theme: "light",
     accentColor: "#676FFF",
@@ -22,7 +22,7 @@ export const privyConfig = {
   walletConnectCloudProjectId: "957c795c4c86e7c46609c0cd4064fa00",
 };
 
-export const supportedChains = [bscTestnet, bsc];
+export const supportedChains = [bscTestnet, bsc, baseSepolia];
 
 export const wagmiConfig = createConfig({
   //@ts-ignore

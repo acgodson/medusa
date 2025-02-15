@@ -1,0 +1,83 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: MedusaRegistry
+    network: chapel
+    source:
+      address: "0x4464a7B1BAebcE50Fc86329599643518d32cF895"
+      abi: MedusaRegistry
+      startBlock: 48304801
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - DeviceBlacklisted
+        - DeviceCleanedUp
+        - DeviceDeregistered
+        - DevicePartitionCreated
+        - DevicePartitionFilled
+        - DeviceRegistered
+        - DeviceRemoved
+        - Paused
+        - RecordUpdated
+        - RoleAdminChanged
+        - RoleGranted
+        - RoleRevoked
+        - StorageCleanup
+        - StorageLocked
+        - StorageUnlocked
+        - Unpaused
+        - WorkflowArchived
+        - WorkflowCreated
+        - WorkflowExecutionIntervalUpdated
+        - WorkflowPauseToggled
+      abis:
+        - name: MedusaRegistry
+          file: ./abis/MedusaRegistry.json
+      eventHandlers:
+        - event: DeviceBlacklisted(string,indexed address,indexed address,bool)
+          handler: handleDeviceBlacklisted
+        - event: DeviceCleanedUp(indexed string,indexed uint256,uint256,uint256)
+          handler: handleDeviceCleanedUp
+        - event: DeviceDeregistered(indexed uint256,string,indexed address)
+          handler: handleDeviceDeregistered
+        - event: DevicePartitionCreated(indexed uint256,uint256,uint256)
+          handler: handleDevicePartitionCreated
+        - event: DevicePartitionFilled(indexed uint256)
+          handler: handleDevicePartitionFilled
+        - event: DeviceRegistered(indexed uint256,string,indexed address,indexed address)
+          handler: handleDeviceRegistered
+        - event: DeviceRemoved(indexed uint256,string,uint256,uint256)
+          handler: handleDeviceRemoved
+        - event: Paused(address)
+          handler: handlePaused
+        - event: RecordUpdated(indexed string,indexed uint256,uint256)
+          handler: handleRecordUpdated
+        - event: RoleAdminChanged(indexed bytes32,indexed bytes32,indexed bytes32)
+          handler: handleRoleAdminChanged
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleRevoked
+        - event: StorageCleanup(indexed address,indexed uint256,uint256,uint256)
+          handler: handleStorageCleanup
+        - event: StorageLocked(indexed uint256)
+          handler: handleStorageLocked
+        - event: StorageUnlocked(indexed uint256)
+          handler: handleStorageUnlocked
+        - event: Unpaused(address)
+          handler: handleUnpaused
+        - event: WorkflowArchived(indexed uint256,indexed address)
+          handler: handleWorkflowArchived
+        - event: WorkflowCreated(indexed uint256,string,address,string)
+          handler: handleWorkflowCreated
+        - event: WorkflowExecutionIntervalUpdated(indexed uint256,uint256)
+          handler: handleWorkflowExecutionIntervalUpdated
+        - event: WorkflowPauseToggled(indexed uint256,bool)
+          handler: handleWorkflowPauseToggled
+      file: ./src/medusa-registry.ts

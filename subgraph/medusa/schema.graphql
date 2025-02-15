@@ -1,0 +1,192 @@
+type DeviceBlacklisted @entity(immutable: true) {
+  id: Bytes!
+  walletId: String! # string
+  deviceAddress: Bytes! # address
+  blacklister: Bytes! # address
+  status: Boolean! # bool
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DeviceCleanedUp @entity(immutable: true) {
+  id: Bytes!
+  walletId: String! # string
+  workflowId: BigInt! # uint256
+  lastActiveTimestamp: BigInt! # uint256
+  cleanupTimestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DeviceDeregistered @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  walletId: String! # string
+  deregistrar: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DevicePartitionCreated @entity(immutable: true) {
+  id: Bytes!
+  partitionIndex: BigInt! # uint256
+  startBlock: BigInt! # uint256
+  endBlock: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DevicePartitionFilled @entity(immutable: true) {
+  id: Bytes!
+  partitionIndex: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DeviceRegistered @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  walletId: String! # string
+  deviceAddress: Bytes! # address
+  registrar: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type DeviceRemoved @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  walletId: String! # string
+  partition: BigInt! # uint256
+  timestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Paused @entity(immutable: true) {
+  id: Bytes!
+  account: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RecordUpdated @entity(immutable: true) {
+  id: Bytes!
+  walletId: String! # string
+  workflowId: BigInt! # uint256
+  counter: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RoleAdminChanged @entity(immutable: true) {
+  id: Bytes!
+  role: Bytes! # bytes32
+  previousAdminRole: Bytes! # bytes32
+  newAdminRole: Bytes! # bytes32
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RoleGranted @entity(immutable: true) {
+  id: Bytes!
+  role: Bytes! # bytes32
+  account: Bytes! # address
+  sender: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RoleRevoked @entity(immutable: true) {
+  id: Bytes!
+  role: Bytes! # bytes32
+  account: Bytes! # address
+  sender: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type StorageCleanup @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  workflowId: BigInt! # uint256
+  deletedCount: BigInt! # uint256
+  timestamp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type StorageLocked @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type StorageUnlocked @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Unpaused @entity(immutable: true) {
+  id: Bytes!
+  account: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type WorkflowArchived @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  owner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type WorkflowCreated @entity(immutable: true) {
+  id: Bytes!
+  internal_id: BigInt! # uint256
+  title: String! # string
+  owner: Bytes! # address
+  schemaId: String! # string
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type WorkflowExecutionIntervalUpdated @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  newInterval: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type WorkflowPauseToggled @entity(immutable: true) {
+  id: Bytes!
+  workflowId: BigInt! # uint256
+  isPaused: Boolean! # bool
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}

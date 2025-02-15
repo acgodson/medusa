@@ -12,7 +12,7 @@ import { trpc } from "@/trpc/client";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useEthContext } from "@/providers/EthContext";
 import { Copy, ExternalLink } from "lucide-react";
-import { Alert, AlertTitle, AlertDescription } from "../atoms";
+import { Alert, AlertTitle, AlertDescription } from "../../atoms";
 import { getAddress, parseEther } from "viem";
 
 interface JoinWorkflowDialogProps {
