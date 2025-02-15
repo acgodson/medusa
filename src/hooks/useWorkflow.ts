@@ -43,7 +43,9 @@ interface WorkflowData {
 // uint256 timestamp;
 
 export const useWorkflow = () => {
-  const [fetchedWorkflows, setFetchedWorkflows] = useState<Workflow[] | null>(null);
+  const [fetchedWorkflows, setFetchedWorkflows] = useState<Workflow[] | null>(
+    null
+  );
   const [baseWorkflows, setBaseWorkflows] = useState<Workflow[] | null>(null);
   const { ready: isReady } = usePrivy();
   const { wallets, ready } = useWallets();
@@ -167,7 +169,7 @@ export const useWorkflow = () => {
     };
 
     if (subgraphData) {
-      processBaseWorkflows();
+      // processBaseWorkflows();
     }
   }, [subgraphData]);
 
@@ -203,7 +205,7 @@ export const useWorkflow = () => {
       setFetchedWorkflows(updatedWorkflows);
     };
 
-    updateContributorStatus();
+    // updateContributorStatus();
   }, [baseWorkflows, connectedWallet, subgraphData]);
 
   return {

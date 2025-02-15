@@ -45,3 +45,9 @@ contracts/artifacts/build-info
 contracts/.states
 contracts/.deps
 contracts/.prettierrc.json
+contracts/MedusaRegistry_flattened.sol
+
+contracts/artifacts/*
+Contracts/**/artifacts/
+
+index.html

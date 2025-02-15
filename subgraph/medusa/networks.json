@@ -1,8 +1,0 @@
-{
-  "base-sepolia": {
-    "MedusaRegistry": {
-      "address": "0x07D60F1Cf13b4b1E32AA4eB97352CC1037286361",
-      "startBlock": 21654641
-    }
-  }
-}

@@ -10,24 +10,30 @@ export const DataSchema = z.object({
   }),
   signature: z.string().optional(),
   contractAddress: z.string(),
-  workflowId: z.number(),
+  workflowId: z.string(),
 });
 
 export const DataCollectionInput = z.object({
   deviceId: z.string(),
-  workflowId: z.number(),
+  workflowId: z.string(),
   data: z.object({
     temperature: z.number(),
     humidity: z.number(),
     timestamp: z.number(),
   }),
+  historicalData: z.array(
+    z.object({
+      temperature: z.number(),
+      humidity: z.number(),
+      timestamp: z.number(),
+    })
+  ).optional(),
 });
 
 export const DeviceRegistrationInput = z.object({
-  workflowId: z.number(),
+  workflowId: z.string(),
 });
 
 export const WorkFlowCreationIput = z.object({
   schemaID: z.string(),
 });
- 

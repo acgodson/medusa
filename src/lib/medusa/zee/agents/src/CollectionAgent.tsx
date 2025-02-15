@@ -1,17 +1,19 @@
-import { PrivyClient } from "@privy-io/server-auth";
 import { ZeeBaseAgent } from "../base";
-import { createDataStorageTool, createPrivyWalletTool } from "../../tools";
-import { PrivyWalletConfig } from "../../tools/src/privyWalletTool";
+import { createStorageTool, createPrivyWalletTool } from "../../tools";
+import { ServerWallet } from "@/lib/medusa/wallets/server-wallet";
+import { ModelConfig } from "@covalenthq/ai-agent-sdk";
 
-// interface ToolCall {
-//   id: string;
-//   type: "function";
-//   function: {
-//     name: string;
-//     arguments: string;
-//     parsed_arguments: Record<string, any>;
-//   };
-// }
+type CollectionConfig = {
+  model: ModelConfig;
+  rpcUrl: string;
+  chainId: string;
+  greenfieldRpcUrl: string;
+  greenfieldChainId: string;
+  walletId: string;
+  adminAddress: string;
+  adminPrivateKey: string;
+  serverWallet: ServerWallet;
+};
 
 interface SignatureResponse {
   signature: string;
@@ -19,50 +21,41 @@ interface SignatureResponse {
 }
 
 export class CollectionAgent extends ZeeBaseAgent {
-  constructor(config: {
-    openAiKey: string;
-    lighthouseApiKey: string;
-    walletId: string;
-    privyConfig: PrivyWalletConfig;
-  }) {
-    // since already have a wallet id, our work here would first be to pass the  updated id
-
-    const storageTool = createDataStorageTool(config.lighthouseApiKey);
-
-    const privy = new PrivyClient(
-      config.privyConfig.appId,
-      config.privyConfig.appSecret
+  constructor(config: CollectionConfig) {
+    const serverWalletTool = createPrivyWalletTool(
+      config.serverWallet,
+      config.walletId
     );
-    const privyWalletTool = createPrivyWalletTool(privy, config.walletId);
+
+    const storageTool = createStorageTool(config);
 
     super({
       name: "Data Collection Agent",
+      model: config.model,
       description: "Agent responsible for collecting and storing sensor data",
       instructions: [
         "When you receive sensor data:",
-        "1. ALWAYS use the privy-wallet tool first to sign the data",
+        "1. ALWAYS use the server-wallet tool first to sign the data",
         "2. After getting the signature, ALWAYS use the store-sensor-data tool to store and upload the signed data",
-        "3. Return the complete operation results including the IPFS CID",
+        "3. Return the complete operation results including the object name/id",
       ],
-      openAiKey: config.openAiKey,
       tools: {
         "store-sensor-data": storageTool,
-        "privy-wallet": privyWalletTool,
+        "server-wallet": serverWalletTool,
       },
       defaultTask: "Process and store sensor data",
     });
   }
 
   async execute(params: {
-    deviceId: string;
+    walletId: string;
+    workflowId: string;
+    contractAddress: string;
     data: {
-      message: string;
       temperature: number;
       humidity: number;
       timestamp: number;
     };
-    contractAddress: string;
-    workflowId: number; //workflow
   }): Promise<{
     success: boolean;
     signature?: string;
@@ -71,11 +64,9 @@ export class CollectionAgent extends ZeeBaseAgent {
     method?: string;
   }> {
     try {
-      // Format data for signing
+      //  data for signing
       const dataToSign = JSON.stringify({
-        deviceId: params.deviceId,
-        data: params.data,
-        timestamp: Date.now(),
+        ...params.data,
       });
 
       // Create signing state
@@ -83,9 +74,10 @@ export class CollectionAgent extends ZeeBaseAgent {
         {
           message: dataToSign,
           operation: "sign" as const,
+          data: params.data,
         },
         {
-          task: "Use privy-wallet tool to sign this sensor data",
+          task: "Use server-wallet tool to sign this sensor data",
         }
       );
 
@@ -98,27 +90,28 @@ export class CollectionAgent extends ZeeBaseAgent {
       );
 
       if (!toolCall?.tool_calls) {
+        //TODO: Have a fallback that retries  until a tool call is found at this point
         throw new Error("No tool calls found in agent response");
       }
 
       const signCall = toolCall.tool_calls.find(
-        (call: any) => call.function.name === "privy-wallet"
+        (call: any) => call.function.name === "server-wallet"
       );
       if (!signCall) {
-        throw new Error("Privy wallet tool call not found");
+        throw new Error("server wallet tool call not found");
       }
 
       // Execute privy wallet tool
-      const privyTool = this.zeeAgent.tools?.["privy-wallet"];
-      if (!privyTool) {
+      const walletTool = this.zeeAgent.tools?.["server-wallet"];
+      if (!walletTool) {
         throw new Error("Privy wallet tool not available");
       }
 
       const args = JSON.parse(signCall.function.arguments);
-      const result = await privyTool.execute(args);
+      const result = await walletTool.execute(args);
       const parsedResult = JSON.parse(result) as SignatureResponse;
 
-      if (typeof params.workflowId !== "number" || isNaN(params.workflowId)) {
+      if (typeof params.workflowId !== "string" || !params.workflowId) {
         throw new Error(`Invalid workflowId: ${params.workflowId}`);
       }
 
@@ -126,12 +119,13 @@ export class CollectionAgent extends ZeeBaseAgent {
       const storageState = this.createAgentState(
         {
           data: {
-            deviceId: params.deviceId,
+            walletId: params.walletId,
             ...params.data,
           },
           signature: parsedResult.signature,
           contractAddress: params.contractAddress,
           workflowId: params.workflowId,
+          operation: "storeData" as const,
         },
         {
           task: "Store and upload signed data",
@@ -178,7 +172,7 @@ export class CollectionAgent extends ZeeBaseAgent {
 
       return {
         success: true,
-        signature: parsedResult.signature,
+        // signature: parsedResult.signature,
         storageResult: JSON.parse(storageResult),
       };
     } catch (error) {
@@ -190,4 +184,7 @@ export class CollectionAgent extends ZeeBaseAgent {
       };
     }
   }
+}
+function StorageConfig() {
+  throw new Error("Function not implemented.");
 }

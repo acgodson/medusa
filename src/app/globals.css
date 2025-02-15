@@ -6,18 +6,18 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
-  --medusa-gold: #daa520;
-  --medusa-black: #171717;
+  --medusa-gold: #ff0000; /* Changed to red */
+  --medusa-black: #000000; /* Made pure black */
   --medusa-light: #f7f7f5;
 }
 
 @layer components {
   /* Primary Button */
   .btn-primary {
-    @apply bg-medusa-gold text-medusa-black px-4 py-2 rounded-lg font-bold transition-all duration-200;
+    @apply bg-gradient-to-r from-red-600 to-red-800 text-white px-4 py-2 rounded-lg font-bold transition-all duration-200;
   }
   .btn-primary:hover {
-    @apply bg-medusa-black text-medusa-gold;
+    @apply bg-gradient-to-r from-black to-gray-900 text-red-600;
   }
 
   /* Secondary Button */
@@ -35,6 +35,23 @@
   .btn-outline:hover {
     @apply bg-medusa-gold text-medusa-black;
   }
+}
+
+/* Remove default focus styles */
+* {
+  outline: none !important;
+}
+
+/* Add custom focus styles for accessibility */
+*:focus-visible {
+  outline: none;
+  /* outline: 0.2px solid var(--medusa-gold) !important;
+  outline-offset: 2px; */
+}
+
+/* Remove focus outline for mouse users, maintain for keyboard navigation */
+*:focus:not(:focus-visible) {
+  outline: none !important;
 }
 
 body {

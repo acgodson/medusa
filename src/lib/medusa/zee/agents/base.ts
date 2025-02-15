@@ -12,11 +12,7 @@ export abstract class ZeeBaseAgent implements BaseAgent {
 
     this.zeeAgent = new ZeeAgent({
       name: config.name,
-      model: {
-        provider: "OPEN_AI",
-        name: "gpt-4o-mini",
-        apiKey: config.openAiKey,
-      },
+      model: config.model,
       description: config.description,
       instructions: config.instructions,
       tools: config.tools,
@@ -26,11 +22,7 @@ export abstract class ZeeBaseAgent implements BaseAgent {
   protected recreateAgent(config: Partial<AgentConfig>) {
     this.zeeAgent = new ZeeAgent({
       name: this.agentName,
-      model: {
-        provider: "OPEN_AI",
-        name: "gpt-4o-mini",
-        apiKey: config.openAiKey,
-      },
+      model: config.model!,
       description: config.description || this.zeeAgent.description,
       instructions: config.instructions || this.zeeAgent.instructions,
       tools: config.tools || this.zeeAgent.tools,

@@ -1,5 +1,9 @@
 import { z } from "zod";
-import type { createTool, Agent as ZeeAgent } from "@covalenthq/ai-agent-sdk";
+import type {
+  createTool,
+  ModelConfig,
+  Agent as ZeeAgent,
+} from "@covalenthq/ai-agent-sdk";
 
 // Common schema definitions
 export const DataSchema = z.object({
@@ -19,9 +23,9 @@ export interface ToolConfig {
 
 export interface AgentConfig {
   name: string;
+  model: ModelConfig;
   description: string;
   instructions: string[];
-  openAiKey: string;
   tools: Record<string, ReturnType<typeof createTool>>;
   defaultTask?: string; // Optional default task description
 }
@@ -36,3 +40,76 @@ export interface BaseAgent {
   execute(params: any): Promise<any>;
 }
 
+export type SensorData = {
+  temperature: number;
+  humidity: number;
+  timestamp: number;
+};
+
+export type Stats = {
+  min: number;
+  max: number;
+  average: number;
+  variance: number;
+};
+
+// Schema Definitions
+export const sensorDataSchema = z
+  .object({
+    temperature: z.number(),
+    humidity: z.number(),
+    timestamp: z.number(),
+  })
+  .strict();
+
+export const contextSchema = z
+  .object({
+    task: z.string(),
+    guidelines: z.array(z.string()),
+    alertCriteria: z.array(z.string()),
+  })
+  .strict();
+
+export const policySchema = z
+  .object({
+    analysis: z
+      .object({
+        usagePolicy: z.enum(["Processed", "Analyzed", "Monetized"]),
+        retention: z
+          .object({
+            duration: z.number(),
+            reason: z.string(),
+          })
+          .strict(),
+        insights: z.array(z.string()),
+        recommendations: z.array(z.string()),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const conditionsSchema = z
+  .object({
+    conditions: z
+      .object({
+        alerts: z.array(z.string()),
+        temperatureStatus: z.string(),
+        temperatureTrend: z.string(),
+        temperatureExplanation: z.string(),
+        humidityStatus: z.string(),
+        humidityTrend: z.string(),
+        humidityExplanation: z.string(),
+        suggestedActions: z.array(z.string()),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProcessingInputSchema = z
+  .object({
+    deviceId: z.string(),
+    latestData: sensorDataSchema,
+    workflowId: z.string(),
+    timestamp: z.number(),
+  })
+  .strict();
