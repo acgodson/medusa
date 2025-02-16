@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
-import { cn } from "@/lib/config/env";
+import { cn } from "@/config/env";
 
 const AccordionContext = React.createContext<{
   activeItems: Set<string>;

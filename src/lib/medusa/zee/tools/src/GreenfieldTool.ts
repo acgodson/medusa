@@ -2,7 +2,7 @@ import { createTool } from "@covalenthq/ai-agent-sdk";
 import { GreenfieldStorage } from "./GreenfieldStorage";
 import { z } from "zod";
 import { PrivyClient } from "@privy-io/server-auth";
-import { DataSchema } from "../../types";
+// import { DataSchema } from "../../types";
 
 type StorageConfig = {
   rpcUrl: string;

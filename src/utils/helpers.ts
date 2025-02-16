@@ -18,6 +18,10 @@ export const formatAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
+export const formatTokenAmount = (amount: number): string => {
+  return amount.toFixed(4) + " SIRN";
+};
+
 export const validateWorkflowInput = (input: any) => {
   const errors: any  = {};
 

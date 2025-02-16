@@ -1,7 +1,7 @@
 "use client";
 
 import { TRPCProvider } from "@/trpc/client";
-import { privyConfig, wagmiConfig } from "@/lib/config/env";
+import { privyConfig, wagmiConfig } from "@/config/env";
 import { WagmiProvider } from "@privy-io/wagmi";
 import { MedusaProvider } from "./MedusaProvider";
 import { PrivyClientConfig, PrivyProvider } from "@privy-io/react-auth";
