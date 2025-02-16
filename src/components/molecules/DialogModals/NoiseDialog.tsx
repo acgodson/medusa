@@ -9,7 +9,7 @@ import { Button } from "@/components/atoms/button";
 import { useNoiseTracking } from "@/hooks/siren-noise/useNoiseTracker";
 
 const defaultConfig = {
-  minDecibels: 30,
+  minDecibels: 10,
   maxDecibels: 120,
   spikeThreshold: 10,
   minDistance: 10,
