@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/atoms/dropdown-menu";
-import { supportedChains } from "@/lib/config/env";
+import { supportedChains } from "@/config/env";
 
 const ExplorerHeader = () => {
   const networks = supportedChains;

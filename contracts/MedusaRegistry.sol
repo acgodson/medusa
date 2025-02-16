@@ -100,12 +100,9 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * @dev Implements validation for all input parameters and sets up initial workflow state
      * Protected by reentrancy guard and global pause mechanism
      */
-    function createWorkflow(IWorkflow.CreateWorkflowInput calldata input)
-        external
-        nonReentrant
-        whenNotPaused
-        returns (uint256)
-    {
+    function createWorkflow(
+        IWorkflow.CreateWorkflowInput calldata input
+    ) external nonReentrant whenNotPaused returns (uint256) {
         ValidationLib.validateString(input.title, MedusaConstants.MAX_STRING_LENGTHS, "title");
         ValidationLib.validateString(input.schemaId, MedusaConstants.MAX_STRING_LENGTHS, "schemaId");
         ValidationLib.validateExecutionInterval(
@@ -164,17 +161,17 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
         IWorkflow.Workflow memory workflow = _workflowStorage.getWorkflow(workflowId);
 
         if (workflow.status != IWorkflow.WorkflowStatus.Active) {
-            _deviceState.registrationInProgress[hashedId] = false; // Clear flag
+            _deviceState.registrationInProgress[hashedId] = false;
             MedusaErrors.throwValidationError("Workflow not active");
         }
 
         if (_deviceState.isDeviceRegistered(hashedId)) {
-            _deviceState.registrationInProgress[hashedId] = false; // Clear flag
+            _deviceState.registrationInProgress[hashedId] = false;
             MedusaErrors.throwValidationError("Device already registered");
         }
 
         if (_deviceState.isDeviceBlacklisted(walletId)) {
-            _deviceState.registrationInProgress[hashedId] = false; // Clear flag
+            _deviceState.registrationInProgress[hashedId] = false;
             MedusaErrors.throwValidationError("Device blacklisted");
         }
 
@@ -210,7 +207,10 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * - Cleans storage state
      * Protected by reentrancy and proper access control
      */
-    function deregisterDevice(uint256 workflowId, string calldata walletId)
+    function deregisterDevice(
+        uint256 workflowId,
+        string calldata walletId
+    )
         external
         nonReentrant
         whenNotPaused
@@ -248,7 +248,10 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * - Rate limiting through execution counter
      * - Workflow status verification
      */
-    function submitRecord(string calldata walletId, uint256 workflowId)
+    function submitRecord(
+        string calldata walletId,
+        uint256 workflowId
+    )
         external
         nonReentrant
         whenNotPaused
@@ -284,11 +287,9 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * @notice Toggles device blacklist status with proper access control
      * @dev Restricted to BLACKLIST_ROLE with proper event emission
      */
-    function toggleDeviceBlacklist(string calldata walletId)
-        external
-        whenNotPaused
-        onlyRole(MedusaConstants.BLACKLIST_ROLE)
-    {
+    function toggleDeviceBlacklist(
+        string calldata walletId
+    ) external whenNotPaused onlyRole(MedusaConstants.BLACKLIST_ROLE) {
         ValidationLib.validateString(walletId, MedusaConstants.MAX_STRING_LENGTHS, "walletId");
         address deviceAddress = _deviceState.getDeviceAddress(walletId);
         ValidationLib.validateAddress(deviceAddress, "registered device");
@@ -302,12 +303,10 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * @dev Implements validation for new interval within system bounds
      * Protected by reentrancy guard and workflow ownership verification
      */
-    function updateWorkflowExecutionInterval(uint256 workflowId, uint256 newInterval)
-        external
-        nonReentrant
-        whenNotPaused
-        onlyWorkflowOwner(workflowId)
-    {
+    function updateWorkflowExecutionInterval(
+        uint256 workflowId,
+        uint256 newInterval
+    ) external nonReentrant whenNotPaused onlyWorkflowOwner(workflowId) {
         _workflowStorage.updateExecutionInterval(
             workflowId,
             newInterval,
@@ -321,11 +320,10 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * @dev Implements pagination through partition system
      * Includes partition validation
      */
-    function getWorkflowDevices(uint256 workflowId, uint256 partitionIndex)
-        external
-        view
-        returns (PaginatedDevices memory)
-    {
+    function getWorkflowDevices(
+        uint256 workflowId,
+        uint256 partitionIndex
+    ) external view returns (PaginatedDevices memory) {
         if (!_workflowStorage.workflowExists(workflowId)) {
             MedusaErrors.throwInvalidInput("Invalid workflow ID");
         }
@@ -349,7 +347,7 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
     }
 
     /**
-     * @notice Retrieves comprehensive workflow information including partition data
+     * @notice Retrieves workflow information including partition data
      * @dev Combines workflow metadata with partition statistics for querying
      * @param workflowId The ID of the workflow to query
      * @return workflow The workflow metadata struct
@@ -357,7 +355,9 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * @return totalDevices Total number of devices across all partitions
      * @return devicesPerPartition Array containing number of devices in each partition
      */
-    function getWorkflowInfo(uint256 workflowId)
+    function getWorkflowInfo(
+        uint256 workflowId
+    )
         external
         view
         returns (
@@ -431,12 +431,10 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * @param walletId The device's unique identifier
      * @return Device struct with the device's details
      */
-    function getDevice(uint256 workflowId, string calldata walletId)
-        external
-        view
-        workflowExists(workflowId)
-        returns (Device memory)
-    {
+    function getDevice(
+        uint256 workflowId,
+        string calldata walletId
+    ) external view workflowExists(workflowId) returns (Device memory) {
         bytes32 hashedId = keccak256(bytes(walletId));
         // address owner = _workflowStorage.getWorkflowOwner(workflowId);
         uint256 devicePartition = partIndex[hashedId];
@@ -460,15 +458,9 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * @return lastExecuted Last execution timestamp
      * @return isActive Whether the device is currently active
      */
-    function getDeviceExecution(address deviceAddress)
-        external
-        view
-        returns (
-            uint256 count,
-            uint256 lastExecuted,
-            bool isActive
-        )
-    {
+    function getDeviceExecution(
+        address deviceAddress
+    ) external view returns (uint256 count, uint256 lastExecuted, bool isActive) {
         string memory walletId = _deviceState.addressToWalletId[deviceAddress];
         if (bytes(walletId).length == 0) {
             MedusaErrors.throwValidationError("Device address not registered");
@@ -505,15 +497,7 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
         uint256 offset,
         uint256 limit,
         address adminAddress
-    )
-        external
-        view
-        returns (
-            uint256[] memory workflows,
-            uint256 total,
-            bool hasMore
-        )
-    {
+    ) external view returns (uint256[] memory workflows, uint256 total, bool hasMore) {
         ValidationLib.validateAddress(adminAddress, "workflowAdmin");
         ValidationLib.validatePaginationParams(offset, limit);
         return _workflowStorage.getArchivedWorkflows(offset, limit, adminAddress);
@@ -541,15 +525,13 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
      * @notice Gets all workflow details including active & archived status
      * @param workflowId The workflow ID to query
      */
-    function getDetailedWorkflow(uint256 workflowId)
+    function getDetailedWorkflow(
+        uint256 workflowId
+    )
         external
         view
         workflowExists(workflowId)
-        returns (
-            IWorkflow.Workflow memory workflow,
-            bool isArchived,
-            bool isPaused
-        )
+        returns (IWorkflow.Workflow memory workflow, bool isArchived, bool isPaused)
     {
         workflow = _workflowStorage.getWorkflow(workflowId);
         isArchived = _workflowStorage.isWorkflowArchived(workflowId, workflow.owner);
@@ -567,15 +549,7 @@ contract MedusaRegistry is AccessControl, ReentrancyGuard, Pausable, MedusaRegis
         uint256 offset,
         uint256 limit,
         address adminAddress
-    )
-        external
-        view
-        returns (
-            IWorkflow.WorkflowListItem[] memory workflows,
-            uint256 total,
-            bool hasMore
-        )
-    {
+    ) external view returns (IWorkflow.WorkflowListItem[] memory workflows, uint256 total, bool hasMore) {
         ValidationLib.validateAddress(adminAddress, "workflowAdmin");
         ValidationLib.validatePaginationParams(offset, limit);
         return _workflowStorage.getAllWorkflows(offset, limit, adminAddress);

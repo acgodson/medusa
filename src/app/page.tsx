@@ -14,17 +14,17 @@ const SUBGRAPH_URL =
   "https://api.studio.thegraph.com/query/61092/medusa/version/latest";
 
 export default async function HomePage() {
-  // const queryClient = new QueryClient();
+  const queryClient = new QueryClient();
 
   // Prefetch both data and workflows
-  // await Promise.all([
-  //   queryClient.prefetchQuery({
-  //     queryKey: ["data"],
-  //     queryFn: async () => {
-  //       return await request(SUBGRAPH_URL, WORKFLOWS_QUERY);
-  //     },
-  //   }),
-  // ]);
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: ["data"],
+      queryFn: async () => {
+        return await request(SUBGRAPH_URL, WORKFLOWS_QUERY);
+      },
+    }),
+  ]);
 
   return (
     <>

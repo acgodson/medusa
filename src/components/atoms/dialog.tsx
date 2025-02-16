@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { cn } from "@/lib/config/env"
+import { cn } from "@/config/env"
 
 interface DialogProps {
   open: boolean;

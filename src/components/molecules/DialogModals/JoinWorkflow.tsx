@@ -13,7 +13,7 @@ import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useEthContext } from "@/providers/EthContext";
 import { Copy, ExternalLink } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../../atoms";
-import { getAddress, parseEther } from "viem";
+import { Progress } from "@/components/atoms/progress";
 
 interface JoinWorkflowDialogProps {
   workflowId: number;
@@ -28,26 +28,52 @@ export function JoinWorkflowDialog({
   open,
   onClose,
 }: JoinWorkflowDialogProps) {
-  const [deviceId, setDeviceId] = useState("");
-  const [deviceAddress, setDeviceAddress] = useState("");
-  const [transactionHash, setTransactionHash] = useState("");
-  const [fundingHash, setFundingHash] = useState("");
+  // device creation and ownershiip details
+  const [deviceId, setDeviceId] = useState("hs8flg95j30bg4vgjf8aoou6");
+  const [deviceAddress, setDeviceAddress] = useState(
+    "0xdC97F1f262974C7719e5968A1Cf3eeb128634879"
+  );
+  const [nftTxHash, setNftTxHash] = useState("");
+
+  // device registration details
+  const [registryTxHash, setRegistryTxHash] = useState("");
+  const [status, setStatus] = useState<
+    "idle" | "creating_device" | "joining_workflow" | "completed"
+  >("idle");
   const [error, setError] = useState<string | null>(null);
-  const [isFunding, setIsFunding] = useState(false);
+
   const { handleLogin, isLoggingIn } = useEthContext();
   const { authenticated, sendTransaction, signTransaction } = usePrivy();
   const { wallets } = useWallets();
   const connectedWallet = wallets.find((wallet) => wallet.type === "ethereum");
 
   const registerDevice = trpc.registerDevice.useMutation({
-    onSuccess: (data) => {
-      console.log("Device registered:", data);
+    onSuccess: async (data) => {
+      setDeviceId(data.walletId);
+      setDeviceAddress(data.address);
+      setNftTxHash(data.nftTxHash);
+
+      // Automatically proceed to join workflow
+      try {
+        const result = await joinWorkflow.mutateAsync({
+          workflowId,
+          walletId: data.walletId,
+          deviceAddress: data.address,
+        });
+        setRegistryTxHash(result.registryTxHash);
+        setStatus("completed");
+      } catch (err: any) {
+        setError(err.message);
+        setStatus("idle");
+      }
     },
     onError: (error) => {
-      console.error("Registration failed:", error);
       setError(error.message);
+      setStatus("idle");
     },
   });
+
+  const joinWorkflow = trpc.joinWorkflow.useMutation();
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -61,59 +87,36 @@ export function JoinWorkflowDialog({
 
   const handleSubmit = async () => {
     if (!connectedWallet) return;
-    setError(null); // Reset error state
-
-    // try {
-    //   const response = await registerDevice.mutateAsync({
-    //     workflowId,
-    //   });
-
-    //   if (response) {
-    //     const provider = await connectedWallet.getEthereumProvider();
-    //     const transactionRequest = {
-    //       to: getAddress(response.data.contractAddress!),
-    //       from: getAddress(connectedWallet.address),
-    //       data: response.data.data,
-    //       value: 0,
-    //     };
-
-    //     const hash = await provider.request({
-    //       method: "eth_sendTransaction",
-    //       params: [transactionRequest],
-    //     });
-
-    //     setDeviceAddress(response.address);
-    //     setDeviceId(response.walletId);
-    //     setTransactionHash(hash);
-    //   }
-    // } catch (err: any) {
-    //   setError(err.message || "Failed to register device");
-    // }
-  };
-
-  const handleFundDevice = async () => {
-    if (!connectedWallet || !deviceAddress) return;
     setError(null);
 
+    // If we have device details but no registry tx, try joining workflow directly
+    if (deviceId && deviceAddress && !registryTxHash) {
+      setStatus("joining_workflow");
+      try {
+        const result = await joinWorkflow.mutateAsync({
+          workflowId,
+          walletId: deviceId,
+          deviceAddress: deviceAddress,
+        });
+        setRegistryTxHash(result.registryTxHash);
+        setStatus("completed");
+      } catch (err: any) {
+        setError(err.message);
+        setStatus("idle");
+      }
+      return;
+    }
+
+    // Otherwise create new device
+    setStatus("creating_device");
     try {
-      setIsFunding(true);
-      const provider = await connectedWallet.getEthereumProvider();
-      const transactionRequest = {
-        to: getAddress(deviceAddress),
-        from: getAddress(connectedWallet.address),
-        value: parseEther("0.02"), // Sending 0.01 ETH, adjust as needed
-      };
-
-      const hash = await provider.request({
-        method: "eth_sendTransaction",
-        params: [transactionRequest],
+      await registerDevice.mutateAsync({
+        workflowId,
+        owner: connectedWallet.address,
       });
-
-      setFundingHash(hash);
-      setIsFunding(false);
     } catch (err: any) {
-      setError(err.message || "Failed to fund device");
-      setIsFunding(false);
+      setError(err.message);
+      setStatus("idle");
     }
   };
 
@@ -137,38 +140,53 @@ export function JoinWorkflowDialog({
 
         <div className="space-y-6">
           {error && (
-            <Alert className="border-2 border-red-500 bg-red-100/90 backdrop-blur-sm">
-              <AlertTitle className="text-red-800 font-semibold">
-                Error
-              </AlertTitle>
-              <AlertDescription className="text-red-700 mt-1 break-words">
-                {error}
-              </AlertDescription>
+            <Alert variant="destructive">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          {status !== "idle" && (
+            <div className="space-y-4">
+              <Progress
+                value={
+                  status === "creating_device"
+                    ? 50
+                    : status === "joining_workflow"
+                    ? 75
+                    : status === "completed"
+                    ? 100
+                    : 0
+                }
+              />
 
-          {(transactionHash || fundingHash) && (
+              <div className="text-sm">
+                {status === "creating_device" && "Creating device wallet..."}
+                {status === "joining_workflow" && "Joining workflow..."}
+                {status === "completed" && "Successfully joined workflow!"}
+              </div>
+            </div>
+          )}
+          {(nftTxHash || registryTxHash) && (
             <Alert className="border-2 border-emerald-500 bg-emerald-100/90 backdrop-blur-sm">
               <AlertTitle className="text-emerald-800 font-semibold">
-                Device Registration Successful!
+                Device {registryTxHash ? "Registered" : "Created"} Successfully!
               </AlertTitle>
               <AlertDescription className="text-emerald-700 mt-1">
                 <div className="space-y-2">
                   <p>Transaction has been submitted.</p>
                   <a
-                    href={`https://sepolia.basescan.org/tx/${transactionHash}`}
+                    href={`https://testnet.bscscan.com/tx/${nftTxHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center text-emerald-900 font-medium hover:underline"
                   >
-                    View on Basescan
+                    View on explorer
                     <ExternalLink className="h-3 w-3 ml-1" />
                   </a>
                 </div>
               </AlertDescription>
             </Alert>
           )}
-
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm text-gray-600 block">
@@ -220,33 +238,29 @@ export function JoinWorkflowDialog({
               <Button
                 disabled={authenticated || isLoggingIn}
                 onClick={handleLogin}
-                className="w-full bg-gradient-to-r from-[#E6B24B] to-[#B88A2D]"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {isLoggingIn ? "Logging in..." : "Connect Wallet"}
               </Button>
-            ) : transactionHash ? (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-600">
-                  Fund this device to cover future transaction fees when
-                  submitting records.
-                </p>
-                <Button
-                  onClick={handleFundDevice}
-                  disabled={isFunding}
-                  className="w-full bg-black text-white hover:bg-black/80"
-                >
-                  {isFunding ? "Processing..." : "Fund Device"}
-                </Button>
-              </div>
             ) : (
               <Button
-                onClick={handleSubmit}
-                disabled={registerDevice.isPending}
-                className="w-full bg-black text-white hover:bg-black/80"
+                onClick={() =>
+                  status === "completed" ? onClose : handleSubmit
+                }
+                disabled={status !== "idle" && status !== "completed"}
+                className={`w-full ${
+                  deviceId && deviceAddress && !registryTxHash
+                    ? "bg-zinc-800 hover:bg-zinc-900"
+                    : "bg-emerald-600 hover:bg-emerald-700"
+                } text-white`}
               >
-                {registerDevice.isPending
-                  ? "Registering..."
-                  : "Register Device"}
+                {deviceId && deviceAddress && !registryTxHash
+                  ? "Join Workflow"
+                  : status === "idle"
+                  ? "Create Device"
+                  : status === "completed"
+                  ? "Finished"
+                  : "Processing..."}
               </Button>
             )}
           </div>

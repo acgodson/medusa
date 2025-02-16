@@ -21,13 +21,15 @@ export const DataCollectionInput = z.object({
     humidity: z.number(),
     timestamp: z.number(),
   }),
-  historicalData: z.array(
-    z.object({
-      temperature: z.number(),
-      humidity: z.number(),
-      timestamp: z.number(),
-    })
-  ).optional(),
+  historicalData: z
+    .array(
+      z.object({
+        temperature: z.number(),
+        humidity: z.number(),
+        timestamp: z.number(),
+      })
+    )
+    .optional(),
 });
 
 export const DeviceRegistrationInput = z.object({
@@ -36,4 +38,12 @@ export const DeviceRegistrationInput = z.object({
 
 export const WorkFlowCreationIput = z.object({
   schemaID: z.string(),
+});
+
+export const createWorkflowInput = z.object({
+  title: z.string(),
+  description: z.string(),
+  creator: z.string(),
+  schemaId: z.string(),
+  executionInterval: z.number(),
 });

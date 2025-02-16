@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { cn } from "@/lib/config/env"
+import { cn } from "@/config/env"
 
 interface ToastProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;

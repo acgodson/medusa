@@ -1,45 +1,139 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ExternalLink,
   Users,
   Workflow,
-  Eye,
+  Calculator,
   Play,
-  Wallet,
   ChevronDown,
   ChevronUp,
+  ActivitySquare,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/atoms/card";
 import { Button, Spinner } from "../atoms";
-import { formatAddress } from "@/utils/helpers";
+import { formatAddress, formatTokenAmount } from "@/utils/helpers";
+import NoiseDialog from "./DialogModals/NoiseDialog";
 
-const WorkflowCard = ({
+interface DeviceData {
+  id: string;
+  executions: number;
+  sirnBalance: number;
+}
+
+interface WorkflowCardProps {
+  workflow: {
+    id: number;
+    title: string;
+    bucketName?: string;
+    description: string;
+    contributorCount: number;
+    totalExecutions: number;
+    isContributor: boolean;
+    deviceIds: string[];
+    schemaId: string;
+    creator: string;
+  };
+  handleJoinWorkflow: (id: number) => void;
+  isPending: boolean;
+  isListView?: boolean;
+}
+
+const WorkflowCard: React.FC<WorkflowCardProps> = ({
   workflow,
   handleJoinWorkflow,
   isPending,
   isListView = false,
-}: any) => {
+}) => {
   const [showDevices, setShowDevices] = useState(workflow.isContributor);
-  const [deviceBalances, setDeviceBalances] = useState([]);
-  const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+  const [open, setOpen] = useState(false);
+  const hasExecutions = (executions: number) => executions > 0;
+
+  const DeviceCard: React.FC<{ deviceId: string }> = ({ deviceId }) => {
+    // TODO: replace with actual device data
+    const mockDeviceData: DeviceData = {
+      id: deviceId,
+      executions: Math.floor(Math.random() * 10),
+      sirnBalance: 0,
+    };
+
+    return (
+      <>
+        <div className="bg-gray-50 rounded-lg p-3 space-y-3 transition-all hover:bg-gray-100">
+          {/* Device ID and Submit Record */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-900 truncate max-w-[240px] sm:max-w-[400px]">
+              {formatAddress(deviceId)}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 min-w-[130px]"
+              onClick={() => {
+                /* Add submit record logic */
+              }}
+            >
+              <ActivitySquare className="h-3 w-3 mr-1" />
+              Submit Record
+            </Button>
+          </div>
+
+          {/* Executions and Rewards Button */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Play className="h-3 w-3 text-red-600" />
+              <span className="text-sm text-gray-600">
+                {mockDeviceData.executions} executions
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className={`bg-white min-w-[130px] ${
+                hasExecutions(mockDeviceData.executions)
+                  ? "text-gray-700 hover:bg-red-50 hover:text-red-600"
+                  : "text-gray-400 cursor-not-allowed"
+              }`}
+              disabled={!hasExecutions(mockDeviceData.executions)}
+              onClick={() => setOpen(true)}
+            >
+              <Calculator className="h-3 w-3 mr-1" />
+              Rewards
+            </Button>
+          </div>
+
+          {/* Estimated SIRN Rewards */}
+          <div className="text-sm text-gray-600 flex items-center justify-end">
+            <span className="text-red-600 font-medium">
+              {hasExecutions(mockDeviceData.executions)
+                ? "Estimated: " +
+                  formatTokenAmount(mockDeviceData.executions * 0.1)
+                : "No rewards yet"}
+            </span>
+          </div>
+
+          <NoiseDialog open={open} onOpenChange={setOpen} />
+        </div>
+      </>
+    );
+  };
 
   return (
-    <Card className="overflow-hidden bg-white">
+    <Card className="overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">
       <CardContent
         className={`p-0 ${isListView ? "md:flex md:items-start" : ""}`}
       >
         {/* Header Section */}
         <div
           className={`
-          border-b border-gray-100 bg-gradient-to-r from-red-50 to-white
-          p-4 ${isListView ? "md:w-1/3 md:border-b-0 md:border-r" : ""}
-        `}
+            border-b border-gray-100 bg-gradient-to-r from-red-50 to-white
+            p-4 ${isListView ? "md:w-1/3 md:border-b-0 md:border-r" : ""}
+          `}
         >
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <h3 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
-                {workflow.name ?? workflow.bucketName}
-                <ExternalLink className="h-4 w-4 text-red-600" />
+                {workflow.title ?? workflow.bucketName}
+                <ExternalLink className="h-4 w-4 text-red-600 cursor-pointer hover:text-red-700" />
               </h3>
               <p className="text-sm text-gray-600">
                 {workflow.description ?? "Basic weather monitoring"}
@@ -50,7 +144,7 @@ const WorkflowCard = ({
           <div className="mt-4 flex items-center gap-4 text-sm text-gray-600">
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4 text-red-600" />
-              <span>{workflow.contributors}</span>
+              <span>{workflow.contributorCount}</span>
             </div>
             <div className="flex items-center gap-1">
               <Play className="h-4 w-4 text-red-600" />
@@ -81,44 +175,13 @@ const WorkflowCard = ({
                 </Button>
               </div>
 
-              {showDevices &&
-                workflow.deviceIds?.map((deviceId: string, index: number) => (
-                  <div
-                    key={deviceId}
-                    className="bg-gray-50 rounded-lg p-3 space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-900 truncate">
-                        {deviceId}
-                      </span>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="bg-white text-gray-700 hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Eye className="h-3 w-3 mr-1" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="bg-white text-gray-700 hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Play className="h-3 w-3 mr-1" />
-                          Submit
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <Wallet className="h-3 w-3" />
-                        <span>0.0000 ETH</span>
-                      </div>
-                      <span>0 executions</span>
-                    </div>
-                  </div>
-                ))}
+              {showDevices && (
+                <div className="space-y-3">
+                  {workflow.deviceIds?.map((deviceId: string) => (
+                    <DeviceCard key={deviceId} deviceId={deviceId} />
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -126,17 +189,19 @@ const WorkflowCard = ({
                 <div className="text-sm text-gray-600 space-y-2">
                   <div className="flex items-center gap-2">
                     <Workflow className="h-4 w-4 text-red-600" />
-                    <span>Schema: {workflow.schema ?? "temp-humid-basic"}</span>
+                    <span>
+                      Schema: {workflow.schemaId ?? "temp-humid-basic"}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-red-600" />
-                    <span>Creator: {formatAddress(workflow.owner)}</span>
+                    <span>Creator: {formatAddress(workflow.creator)}</span>
                   </div>
                 </div>
               </div>
 
               <Button
-                variant={"outline"}
+                variant="outline"
                 className="w-full bg-zinc-800 text-white hover:bg-zinc-900 hover:text-white"
                 onClick={() => handleJoinWorkflow(workflow.id)}
               >

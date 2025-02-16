@@ -1,12 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Plus, Grid, List } from "lucide-react";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/atoms/tabs";
+import { Tabs, TabsContent } from "@/components/atoms/tabs";
 import { Button } from "@/components/atoms/button";
 import { useAuthenticatedAction } from "@/hooks/useAuth";
 import { JoinWorkflowDialog } from "../molecules/DialogModals/JoinWorkflow";
@@ -23,13 +17,9 @@ const WorkflowExplorer = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<number>(0);
 
-  const {
-    fetchedWorkflows,
-    isLoading,
-    handleSubmit,
-    isPending,
-    createWorkflow,
-  } = useWorkflow();
+  const { workflows, isLoading, handleSubmit, isPending, createWorkflow } =
+    useWorkflow();
+    
 
   const handleDeployWorkflow = () => {};
 
@@ -38,7 +28,7 @@ const WorkflowExplorer = () => {
     setIsOpen(true);
   };
 
-  const selectedWorkflowData = fetchedWorkflows?.find(
+  const selectedWorkflowData = workflows?.find(
     (w: any) => w.id === selectedWorkflow
   );
 
@@ -56,8 +46,8 @@ const WorkflowExplorer = () => {
                 : "grid-cols-1"
             } gap-4 md:gap-6`}
           >
-            {fetchedWorkflows && fetchedWorkflows.length > 0 ? (
-              fetchedWorkflows.map((workflow: any, i: number) => (
+            {workflows && workflows.length > 0 ? (
+              workflows.map((workflow: any, i: number) => (
                 <Workflows
                   key={i}
                   workflow={workflow}
@@ -90,7 +80,7 @@ const WorkflowExplorer = () => {
 
       <JoinWorkflowDialog
         workflowId={selectedWorkflow}
-        workflowTitle={selectedWorkflowData?.name || ""}
+        workflowTitle={selectedWorkflowData?.title!}
         open={isOpen}
         onClose={() => setIsOpen(false)}
       />

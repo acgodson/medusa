@@ -2,28 +2,25 @@ import { PrivyClient } from "@privy-io/server-auth";
 import { createViemAccount } from "@privy-io/server-auth/viem";
 import {
   Address,
-  Client,
   createPublicClient,
   createWalletClient,
   http,
+  PublicClient,
 } from "viem";
 import { bscTestnet } from "viem/chains";
-import {
-  BiconomySmartAccountV2,
-  createPaymaster,
-  createSmartAccountClient,
-  Paymaster,
-  PaymasterMode,
-} from "@biconomy/account";
+import { createSmartAccountClient } from "permissionless";
+import { toSimpleSmartAccount } from "permissionless/accounts";
+import { createPimlicoClient } from "permissionless/clients/pimlico";
+import { entryPoint07Address } from "viem/account-abstraction";
 
 export class ServerWallet {
   public privy: PrivyClient;
-  private client: Client;
+  private publicClient: PublicClient;
   private smartAccountPromise: Promise<any> | null = null;
 
   constructor(appId: string, appSecret: string, rpcUrl: string) {
     this.privy = new PrivyClient(appId, appSecret);
-    this.client = createPublicClient({
+    this.publicClient = createPublicClient({
       chain: bscTestnet,
       transport: http(rpcUrl),
     });
@@ -48,35 +45,50 @@ export class ServerWallet {
           transport: http(),
         });
 
-        console.log("Wallet client created for address:", viemAccount.address);
+        const pimlicoUrl = `https://api.pimlico.io/v2/binance-testnet/rpc?apikey=${process.env.PIMLICO_API_KEY}`;
 
-        if (
-          !process.env.BICONOMY_BUNDLER_URL ||
-          !process.env.BICONOMY_PAYMASTER_URL
-        ) {
-          throw new Error("Missing Biconomy configuration");
-        }
-
-        const biconomyPaymaster = await createPaymaster({
-          paymasterUrl: process.env.BICONOMY_PAYMASTER_URL!,
-        });
-        // Create Biconomy smart account
-        const smartAccount = await createSmartAccountClient({
-          signer: walletClient,
-          bundlerUrl: process.env.BICONOMY_BUNDLER_URL,
-          biconomyPaymasterApiKey: process.env.BICONOMY_PAYMASTER_API_KEY,
-          chainId: bscTestnet.id,
-          paymasterUrl: process.env.BICONOMY_PAYMASTER_URL,
-          paymaster: biconomyPaymaster,
+        // Create Pimlico paymaster client
+        const pimlicoPaymaster = createPimlicoClient({
+          transport: http(pimlicoUrl),
+          entryPoint: {
+            address: entryPoint07Address,
+            version: "0.7",
+          },
         });
 
-        const smartAccountAddress = await smartAccount.getAccountAddress();
-        console.log("Smart account created at address:", smartAccountAddress);
+        // Initialize the smart account
+        const simpleSmartAccount = await toSimpleSmartAccount({
+          client: walletClient,
+          owner: viemAccount,
+          entryPoint: {
+            address: entryPoint07Address,
+            version: "0.7",
+          },
+        });
 
-        return smartAccount;
+        console.log(simpleSmartAccount);
+
+        // Create bundler and smart account client
+        const smartAccountClient = createSmartAccountClient({
+          account: simpleSmartAccount,
+          chain: bscTestnet,
+          bundlerTransport: http(pimlicoUrl),
+          paymaster: pimlicoPaymaster,
+          userOperation: {
+            estimateFeesPerGas: async () => {
+              return (await pimlicoPaymaster.getUserOperationGasPrice()).fast;
+            },
+          },
+        });
+
+        return smartAccountClient;
       })();
     }
     return this.smartAccountPromise;
+  }
+
+  async getAddress(walletId: string) {
+
   }
 
   async executeOperation(
@@ -85,48 +97,38 @@ export class ServerWallet {
     contractAddress: `0x${string}`,
     data: `0x${string}`
   ) {
-    const smartAccount: BiconomySmartAccountV2 = await this.createSmartAccount(
-      walletId,
-      address
-    );
+    const smartAccountClient = await this.createSmartAccount(walletId, address);
 
     try {
       console.log("Preparing transaction with params:", {
-        smartAccountAddress: await smartAccount.getAccountAddress(),
+        smartAccountAddress: smartAccountClient.account.address,
         contractAddress,
         dataLength: data.length,
       });
 
-      const tx = {
-        to: contractAddress as `0x${string}`,
+      // Send the transaction using the smart account client
+      const txHash = await smartAccountClient.sendTransaction({
+        account: smartAccountClient.account,
+        to: contractAddress,
         data: data,
-      };
-      const userOpParams = {
-        paymasterServiceData: {
-          mode: PaymasterMode.SPONSORED,
-          calculateGasLimits: true,
-        },
-      };
-      console.log("Building user operation with params:", userOpParams);
+        value: BigInt(0),
+      });
 
-      const smartAccountAddress = await smartAccount.getAccountAddress();
+      console.log(txHash);
 
-      // Build the user operation
-      const userOp = await smartAccount.buildUserOp([tx]);
+      // Wait for the transaction to be mined
+      const receipt = await this.publicClient.waitForTransactionReceipt({
+        hash: txHash,
+      });
 
-      // Send the user operation
-      const userOpResponse = await smartAccount.sendUserOp(userOp);
-
-      // Wait for transaction
-      const transactionDetails = await userOpResponse.wait();
+      console.log("receipt transaction hash", receipt.transactionHash);
 
       return {
-        userOpHash: userOpResponse.userOpHash,
-        transactionHash: transactionDetails.receipt.transactionHash,
-        smartAccountAddress,
+        transactionHash: txHash,
+        smartAccountAddress: smartAccountClient.account.address,
       };
     } catch (error) {
-      console.error("Failed to send user operation:", error);
+      console.error("Failed to send transaction:", error);
       throw error;
     }
   }
