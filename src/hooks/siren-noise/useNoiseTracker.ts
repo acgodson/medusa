@@ -33,17 +33,17 @@ export const useNoiseTracking = (config: NoiseConfig) => {
   });
 
   const [systemError, setSystemError] = useState<string | null>(null);
-  const lastNoiseRef = useRef<number>(0);
+  const [currentNoise, setCurrentNoise] = useState<number>(0); // Add explicit state for current noise
   const isActiveRef = useRef(false);
 
   // Handle noise measurement updates
   useEffect(() => {
     if (!isRecording || !isTracking) return;
 
-    const measurementInterval = setInterval(() => {
-      const db = calculateDecibels();
+    const measurementInterval = setInterval(async () => {
+      const db = await calculateDecibels();
       if (db !== null) {
-        lastNoiseRef.current = db;
+        setCurrentNoise(db); // Update the current noise state
         addNoiseSample(db);
       }
     }, config.samplingInterval);
@@ -57,6 +57,13 @@ export const useNoiseTracking = (config: NoiseConfig) => {
     config.samplingInterval,
   ]);
 
+  // Update currentNoise when currentReading changes
+  useEffect(() => {
+    if (currentReading) {
+      setCurrentNoise(currentReading);
+    }
+  }, [currentReading]);
+
   // Consolidated start function
   const startTracking = async () => {
     try {
@@ -64,7 +71,7 @@ export const useNoiseTracking = (config: NoiseConfig) => {
       isActiveRef.current = true;
 
       await captureAudio();
-      startGPS();
+      await startGPS();
       setSystemError(null);
     } catch (err) {
       setSystemError(
@@ -76,10 +83,10 @@ export const useNoiseTracking = (config: NoiseConfig) => {
     }
   };
 
-  // Consolidated stop function
   const stopTracking = useCallback(() => {
     stopRecording();
     stopGPS();
+    setCurrentNoise(0); // Reset noise when stopping
     isActiveRef.current = false;
   }, [stopRecording, stopGPS]);
 
@@ -102,45 +109,13 @@ export const useNoiseTracking = (config: NoiseConfig) => {
     };
   }, [stopTracking]);
 
-  useEffect(() => {
-    if (!isTracking && isRecording) {
-      stopRecording();
-    }
-  }, [isTracking, isRecording, stopRecording]);
-
-  const startGPSWithRetry = useCallback(
-    async (retries = 3) => {
-      for (let i = 0; i < retries; i++) {
-        try {
-          await startGPS();
-          return true;
-        } catch (err) {
-          if (i === retries - 1) throw err;
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-        }
-      }
-      return false;
-    },
-    [startGPS]
-  );
-
-  const persistData = useCallback(() => {
-    const data: StoredData = {
-      timestamp: Date.now(),
-      locationData,
-    };
-    localStorage.setItem("noise-tracking-data", JSON.stringify(data));
-  }, [locationData]);
-
   return {
     isTracking: isRecording && isTracking,
-    currentNoise: currentReading,
+    currentNoise, // Return the explicit noise state
     currentPosition,
     locationData,
     error: systemError,
     startTracking,
     stopTracking,
-    startGPSWithRetry,
-    persistData,
   };
 };

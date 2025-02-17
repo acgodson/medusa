@@ -8,42 +8,85 @@ export const useDecibelMeter = (
   const [currentReading, setCurrentReading] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [calibrationOffset, setCalibrationOffset] = useState(0);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
 
-  // Throttled decibel calculation to prevent excessive updates
-  const calculateDecibels = useCallback(
+  // Standard reference pressure for dB SPL (20 micropascals)
+  const REFERENCE_PRESSURE = 0.00002;
+
+  // Mobile microphone sensitivity (typical smartphone mic)
+  const MIC_SENSITIVITY_DB = -35; // Mobile mics are generally more sensitive
+  const MIC_SENSITIVITY = Math.pow(10, MIC_SENSITIVITY_DB / 20);
+
+  // Calibration offset to align with typical environmental levels
+  const CALIBRATION_OFFSET = -60; // Adjust this based on testing
+
+  const calculateDecibels = useCallback(() => {
+    if (!isRecording || !analyserRef.current) return null;
+
+    try {
+      const dataArray = new Float32Array(analyserRef.current.frequencyBinCount);
+      analyserRef.current.getFloatTimeDomainData(dataArray);
+
+      // Calculate RMS of the time-domain signal
+      let rmsSum = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        rmsSum += dataArray[i] * dataArray[i];
+      }
+
+      const rms = Math.sqrt(rmsSum / dataArray.length);
+
+      // Convert to pressure using mic sensitivity
+      const pressure = rms / MIC_SENSITIVITY;
+
+      // Calculate dB SPL with calibration offset
+      let db =
+        20 * Math.log10(pressure / REFERENCE_PRESSURE) + CALIBRATION_OFFSET;
+
+      // Add basic A-weighting approximation
+      db += 2.0;
+
+      // Constrain to min/max range
+      return Math.max(config.minDecibels, Math.min(config.maxDecibels, db));
+    } catch (err) {
+      console.error("Error calculating decibels:", err);
+      return null;
+    }
+  }, [isRecording, config.minDecibels, config.maxDecibels]);
+
+  const updateReading = useCallback(
     throttle(() => {
-      if (!isRecording || !analyserRef.current) return null;
-
-      try {
-        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-        analyserRef.current.getByteFrequencyData(dataArray);
-
-        // Calculate RMS value
-        const rms = Math.sqrt(
-          dataArray.reduce((sum, val) => sum + val * val, 0) / dataArray.length
-        );
-
-        // Convert to decibels with calibration
-        const uncalibratedDb = 20 * Math.log10(rms + 1) + calibrationOffset;
-        const db = Math.max(
-          config.minDecibels,
-          Math.min(config.maxDecibels, uncalibratedDb)
-        );
-
-        return Math.round(db);
-      } catch (err) {
-        console.error("Error calculating decibels:", err);
-        return null;
+      const db = calculateDecibels();
+      if (db !== null) {
+        setCurrentReading(Math.round(db));
       }
     }, config.samplingInterval),
-    [isRecording, calibrationOffset, config]
+    [calculateDecibels, config.samplingInterval]
   );
+
+  const setupAudioGraph = (context: AudioContext, stream: MediaStream) => {
+    // Create and configure analyzer
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 1024; // Good balance between precision and performance
+    analyser.smoothingTimeConstant = 0.125; // Balanced response time
+
+    // Create gain node for potential calibration adjustments
+    const gainNode = context.createGain();
+    gainNode.gain.value = 1.0;
+
+    // Create source from stream
+    const source = context.createMediaStreamSource(stream);
+
+    // Connect the audio graph
+    source.connect(gainNode);
+    gainNode.connect(analyser);
+
+    return { analyser, gainNode, source };
+  };
 
   const captureAudio = async () => {
     try {
@@ -51,47 +94,68 @@ export const useDecibelMeter = (
         throw new Error("Audio API not supported");
       }
 
-      // Request audio with specific constraints for better quality
+      // Request audio input with optimal settings
       streamRef.current = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false,
+          channelCount: 1,
+          sampleRate: 48000,
         },
       });
 
+      // Create audio context with optimal settings
       audioContextRef.current = new AudioContext({
         latencyHint: "interactive",
         sampleRate: 48000,
       });
 
-      sourceRef.current = audioContextRef.current.createMediaStreamSource(
+      // Setup audio processing graph
+      const { analyser, gainNode, source } = setupAudioGraph(
+        audioContextRef.current,
         streamRef.current
       );
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 2048; // precise frequency analysis
-      analyserRef.current.smoothingTimeConstant = 0.2;
 
-      sourceRef.current.connect(analyserRef.current);
+      // Store refs
+      analyserRef.current = analyser;
+      gainNodeRef.current = gainNode;
+      sourceRef.current = source;
+
       setIsRecording(true);
       setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to initialize audio"
+
+      // Start measurements
+      const measurementInterval = setInterval(
+        updateReading,
+        config.samplingInterval
       );
-      throw err;
+
+      return () => clearInterval(measurementInterval);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to initialize audio";
+      setError(errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
   const stopRecording = useCallback(() => {
+    // Stop and cleanup media stream
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
 
+    // Disconnect and cleanup audio nodes
     if (sourceRef.current) {
       sourceRef.current.disconnect();
       sourceRef.current = null;
+    }
+
+    if (gainNodeRef.current) {
+      gainNodeRef.current.disconnect();
+      gainNodeRef.current = null;
     }
 
     if (analyserRef.current) {
@@ -99,32 +163,17 @@ export const useDecibelMeter = (
       analyserRef.current = null;
     }
 
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
+    // Close audio context
+    if (audioContextRef.current?.state !== "closed") {
+      audioContextRef.current?.close();
       audioContextRef.current = null;
     }
 
     setIsRecording(false);
+    setCurrentReading(0);
   }, []);
 
-  const calibrate = useCallback(async () => {
-    if (!isRecording) return;
-
-    // Take 100 samples in a quiet environment
-    const samples: number[] = [];
-    for (let i = 0; i < 100; i++) {
-      const reading = await calculateDecibels();
-      if (reading !== null) samples.push(reading);
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-
-    // Calculate offset from expected ambient noise level
-    const avgReading = samples.reduce((a, b) => a + b, 0) / samples.length;
-    const expectedAmbient = 35; // typical quiet room
-    setCalibrationOffset(expectedAmbient - avgReading);
-  }, [isRecording, calculateDecibels]);
-
-  // Automatic cleanup
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopRecording();
@@ -138,6 +187,5 @@ export const useDecibelMeter = (
     captureAudio,
     stopRecording,
     calculateDecibels,
-    calibrate,
   };
 };
