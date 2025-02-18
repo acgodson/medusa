@@ -6,6 +6,7 @@ export interface NoiseConfig {
   maxSamplesPerPoint: number; // Max samples before forced update
   samplingInterval: number; // MS between measurements
   batteryOptimization: boolean; // Enable battery saving features
+  processSample?: (buffer: Float32Array) => number;
 }
 
 export interface LocationPoint {

@@ -15,6 +15,35 @@ export const DataSchema = z.object({
   }),
 });
 
+export const NoiseDataSchema = z.object({
+  deviceId: z.string(),
+  sessionId: z.string(),
+  data: z.record(
+    // Key is formatted as "lat|lng" with 5 decimal precision
+    z.string().regex(/^-?\d+\.\d{5}\|-?\d+\.\d{5}$/),
+    z.object({
+      noise: z.number(),
+      minNoise: z.number(),
+      maxNoise: z.number(),
+      samples: z.number(),
+      accuracy: z.number(),
+      timestamp: z.number(),
+      spikes: z.number().default(0),
+    })
+  ),
+  metadata: z.object({
+    startTime: z.number(),
+    endTime: z.number(),
+    deviceInfo: z
+      .object({
+        manufacturer: z.string().optional(),
+        model: z.string().optional(),
+      })
+      .optional(),
+    totalSamples: z.number(),
+  }),
+});
+
 export interface ToolConfig {
   id: string;
   description: string;
