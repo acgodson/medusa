@@ -51,3 +51,7 @@ contracts/artifacts/*
 Contracts/**/artifacts/
 
 index.html
+
+subgraph/
+/subgraph/
+contracts/DeviceNFT_flattened.sol
