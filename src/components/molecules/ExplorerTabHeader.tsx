@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { Plus, Grid, List } from "lucide-react";
 import { TabsList, TabsTrigger } from "@/components/atoms/tabs";
 import { Button } from "@/components/atoms/button";
-import { useWorkflow } from "@/hooks/useWorkflow";
 import CreateWorkflowDialog from "./DialogModals/CreateWorkflow";
 
 const ExplorerTabHeader = () => {
@@ -31,7 +30,7 @@ const ExplorerTabHeader = () => {
           </TabsTrigger>
         </TabsList>
 
-        <div className="flex justify-between gap-2">
+        <div className="flex justify-end gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -45,7 +44,7 @@ const ExplorerTabHeader = () => {
               <List className="h-4 w-4 text-gray-600" />
             )}
           </Button>
-          <Button
+          {/* <Button
             className="flex-1 bg-gradient-to-r from-[#e64b4b] to-[#be3b3b] text-white shadow-lg 
                     hover:shadow-xl hover:opacity-90 px-4 py-2 rounded-lg transition-all duration-200
                     text-sm"
@@ -53,7 +52,7 @@ const ExplorerTabHeader = () => {
           >
             <Plus className="h-4 w-4 mr-2" />
             Deploy Workflow
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -90,14 +89,14 @@ const ExplorerTabHeader = () => {
               <List className="h-4 w-4 text-gray-600" />
             )}
           </Button>
-          <Button
+          {/* <Button
             className="bg-gradient-to-r from-[#E6B24B] to-[#B88A2D] text-white shadow-lg 
                              hover:shadow-xl hover:opacity-90 px-6 py-2 rounded-lg transition-all duration-200"
             disabled={true}
           >
             <Plus className="h-4 w-4 mr-2" />
             Deploy Workflow
-          </Button>
+          </Button> */}
         </div>
       </div>
 
