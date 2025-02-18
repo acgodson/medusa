@@ -39,7 +39,7 @@ const TIME_UNITS = {
 const MIN_INTERVAL = 60; // 1 minute in seconds
 const MAX_INTERVAL = 86400; // 1 day in seconds
 
-const schemas = ["m-schema-001"];
+const schemas = ["m-schema-001", "m-schema-002"];
 
 const CreateWorkflowDialog = ({
   isOpen,
@@ -160,6 +160,9 @@ const CreateWorkflowDialog = ({
 
   const SchemaSelector = () => (
     <DropdownMenu>
+      <Label htmlFor="title">
+        Schema <span className="text-red-500">*</span>
+      </Label>
       <DropdownMenuTrigger asChild>
         <button
           className="px-4 py-2 bg-gray-50 text-[#9a2529] rounded-lg
@@ -180,7 +183,7 @@ const CreateWorkflowDialog = ({
         {schemas.map((schema, index) => (
           <DropdownMenuItem
             key={`${schema}-${index}`}
-            onChange={(e) => setFormData({ ...formData, schemaId: schema })}
+            onClick={(e) => setFormData({ ...formData, schemaId: schema })}
             className="text-[#9a2529] hover:text-white hover:bg-[#9a2529]
                      focus:text-white focus:bg-[#9a2529]"
           >
@@ -203,6 +206,7 @@ const CreateWorkflowDialog = ({
         </p>
 
         <form onSubmit={submitForm} className="space-y-6">
+          <SchemaSelector />
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">

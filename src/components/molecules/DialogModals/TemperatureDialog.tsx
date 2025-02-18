@@ -12,22 +12,19 @@ import { trpc } from "@/trpc/client";
 import { usePrivy } from "@privy-io/react-auth";
 import { WorkflowResultsDrawer } from "../ResultSection";
 import { WorkflowResultsProps } from "@/lib/medusa/bridge/types";
+import { XIcon } from "lucide-react";
 
-interface SubmitRecordDialogProps {
+interface TemperatureDialogProps {
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   deviceId: string;
-  workflowTitle: string;
-  workflowId: string;
 }
 
-export function SubmitRecordDialog({
+export function TemperatureDialog({
   open,
-  onClose,
+  onOpenChange,
   deviceId,
-  workflowTitle,
-  workflowId,
-}: SubmitRecordDialogProps) {
+}: TemperatureDialogProps) {
   const [temperature, setTemperature] = useState("");
   const [humidity, setHumidity] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -80,23 +77,23 @@ export function SubmitRecordDialog({
     // }
   };
 
+  const handleFetch = async () => {};
+
   const handleCloseResults = () => {
     setShowResults(false);
     setWorkflowResult(null);
-    onClose();
+    onOpenChange(false);
   };
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onClose}>
+      <Dialog open={open} onOpenChange={onOpenChange} persistent={true}>
         <DialogContent className="bg-white/95 backdrop-blur-xl border border-white/50">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              Submit Record
-              <div className="text-sm text-gray-500 font-normal mt-1">
-                {workflowTitle} - Device: {deviceId}
-              </div>
+          <DialogHeader className="flex justify-between items-center">
+            <DialogTitle className="text-xl font-semibol ">
+              Submit Temperature Record
             </DialogTitle>
+            <XIcon cursor={"pointer"} onClick={() => onOpenChange(false)} />
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
@@ -148,7 +145,7 @@ export function SubmitRecordDialog({
             <div className="pt-4">
               <Button
                 onClick={handleSubmit}
-                disabled={!authenticated || executeWorkflow.isPending}
+                disabled={true}
                 className="w-full bg-black text-white hover:bg-black/80"
               >
                 {executeWorkflow.isPending ? (

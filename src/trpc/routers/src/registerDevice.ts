@@ -21,15 +21,12 @@ export const registerDevice = baseProcedure
         process.env.PRIVY_APP_SECRET!
       );
 
-      // const deviceWallet = await privy.walletApi.create({
-      //   chainType: "ethereum",
-      // });
+      const deviceWallet = await privy.walletApi.create({
+        chainType: "ethereum",
+      });
 
-      const walletId = "hs8flg95j30bg4vgjf8aoou6"; // deviceWallet.id;
-      const eoa = "0xA4095E12980fC11b31e52f915D74f45673A925d4"; // deviceWallet.address;
-      //       Creating smart account for wallet: hs8flg95j30bg4vgjf8aoou6
-      // Wallet client created for address: 0xA4095E12980fC11b31e52f915D74f45673A925d4
-      // Smart account created at address: 0x3FF60eDdd1E4649D82fa631cA4dB04892a6AdC93
+      const walletId = deviceWallet.id;
+      const eoa = deviceWallet.address;
 
       if (!walletId || !eoa) {
         throw new Error("Error creating server wallet");

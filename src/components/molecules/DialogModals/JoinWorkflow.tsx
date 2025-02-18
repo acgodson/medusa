@@ -29,10 +29,8 @@ export function JoinWorkflowDialog({
   onClose,
 }: JoinWorkflowDialogProps) {
   // device creation and ownershiip details
-  const [deviceId, setDeviceId] = useState("hs8flg95j30bg4vgjf8aoou6");
-  const [deviceAddress, setDeviceAddress] = useState(
-    "0xdC97F1f262974C7719e5968A1Cf3eeb128634879"
-  );
+  const [deviceId, setDeviceId] = useState("");
+  const [deviceAddress, setDeviceAddress] = useState("");
   const [nftTxHash, setNftTxHash] = useState("");
 
   // device registration details
@@ -86,7 +84,14 @@ export function JoinWorkflowDialog({
   };
 
   const handleSubmit = async () => {
-    if (!connectedWallet) return;
+    if (!connectedWallet) {
+      console.log("no connected wallet");
+      return;
+    }
+    if (status === "completed") {
+      onClose();
+      return;
+    }
     setError(null);
 
     // If we have device details but no registry tx, try joining workflow directly
@@ -107,7 +112,6 @@ export function JoinWorkflowDialog({
       return;
     }
 
-    // Otherwise create new device
     setStatus("creating_device");
     try {
       await registerDevice.mutateAsync({
@@ -244,9 +248,7 @@ export function JoinWorkflowDialog({
               </Button>
             ) : (
               <Button
-                onClick={() =>
-                  status === "completed" ? onClose : handleSubmit
-                }
+                onClick={handleSubmit}
                 disabled={status !== "idle" && status !== "completed"}
                 className={`w-full ${
                   deviceId && deviceAddress && !registryTxHash

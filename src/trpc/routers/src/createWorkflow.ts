@@ -13,6 +13,27 @@ export const createWorkflow = baseProcedure
       const wid = generateDigitsSlug();
       console.log("Generated Workflow ID:", wid.toString());
 
+      let bodyContent = JSON.stringify({
+        operation: "createBucket",
+        workflowId: "7705",
+      });
+
+      let response = await fetch(
+        `${process.env.HOST_URL}/api/trpc/greenfield`,
+        {
+          method: "POST",
+          body: bodyContent,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      let greenfieldData = await response.json();
+
+      if (!greenfieldData) {
+        throw new Error("Unable to create greenfield bucket for workflow");
+      }
+
+      return greenfieldData;
       const workflowInput = [
         wid,
         input.title,
@@ -34,6 +55,7 @@ export const createWorkflow = baseProcedure
 
       return {
         data: txData,
+        bucketTxn: greenfieldData.data.txHash,
         contractAddress: process.env.REGISTRY_CONTRACT,
       };
     } catch (error: any) {

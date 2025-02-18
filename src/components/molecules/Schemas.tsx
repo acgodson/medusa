@@ -10,11 +10,7 @@ const Schemas = ({
   handleDeployWorkflow: any;
   isPending: boolean;
 }) => {
-  const [gatewayUrl, setGatewayUrl] = useState(
-    "https://default-gateway.medusa.network"
-  );
-
-  // Available schemas
+  // Default schemas
   const availableSchemas = [
     {
       id: "temp-humid-basic",
@@ -22,12 +18,42 @@ const Schemas = ({
       description: "Basic sensor data collection and analysis workflow",
       agents: {
         collection: { type: "StandardSensorCollection" },
-        broadcast: { type: "LighthouseStorage" },
+        broadcast: { type: "Greenfield" },
         response: { type: "TemperatureAnalysis" },
       },
-      deployedWorkflows: 2,
+      deployedWorkflows: 1,
+    },
+    {
+      id: "m-schema-002",
+      name: "Sonic Environment Recorder",
+      description: "Urban soundscape collection with geolocation tagging",
+      agents: {
+        calibration: { type: "AcousticCalibrationTool" },
+        collection: { type: "GeotaggedAudioCollection" },
+        broadcast: { type: "GreenFieldBSCConnector" },
+        response: { type: "NoisePatternReporting" },
+      },
+      deployedWorkflows: 1,
     },
   ];
+
+  // Helper function to render agent icons based on type
+  const getAgentIcon = (agentType: string) => {
+    switch (agentType) {
+      case "calibration":
+        return "🔧";
+      case "collection":
+        return "🔍";
+      case "storage":
+        return "💾";
+      case "broadcast":
+        return "📡";
+      case "response":
+        return "📊";
+      default:
+        return "⚙️";
+    }
+  };
 
   return (
     <>
@@ -42,7 +68,7 @@ const Schemas = ({
             <div className="space-y-1">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 {schema.name}
-                <ExternalLink className="h-4 w-4 text-gray-400" />
+                {/* <ExternalLink className="h-4 w-4 text-gray-400" /> */}
               </h3>
               <p className="text-sm text-gray-500">{schema.description}</p>
             </div>
@@ -60,18 +86,23 @@ const Schemas = ({
                   Agent Configuration:
                 </div>
                 <div className="text-sm space-y-1">
-                  <div>🔍 Collection: {schema.agents.collection.type}</div>
-                  <div>📡 Broadcast: {schema.agents.broadcast.type}</div>
-                  <div>📊 Response: {schema.agents.response.type}</div>
+                  {/* Dynamically render all agents in the schema */}
+                  {Object.entries(schema.agents).map(([agentKey, agent]) => (
+                    <div key={agentKey} className="flex items-start">
+                      <span className="w-5">{getAgentIcon(agentKey)}</span>
+                      <span className="capitalize">{agentKey}:</span>
+                      <span className="ml-1 text-gray-700">{agent.type}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
               <Button
                 variant="outline"
                 className="w-full hover:bg-[#E6B24B]/10"
-                onClick={handleDeployWorkflow}
-                // disabled={!createWorkflow.isPending}
+                onClick={() => handleDeployWorkflow(schema.id)}
+                disabled={isPending}
               >
-                {isPending ? <Spinner /> : "    Deploy Using Schema"}
+                {isPending ? <Spinner /> : "Deploy Using Schema"}
               </Button>
             </div>
           </CardContent>

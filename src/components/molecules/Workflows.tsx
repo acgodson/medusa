@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/atoms/card";
 import { Button, Spinner } from "../atoms";
 import { formatAddress, formatTokenAmount } from "@/utils/helpers";
 import NoiseDialog from "./DialogModals/NoiseDialog";
+import { TemperatureDialog } from "./DialogModals/TemperatureDialog";
 
 interface DeviceData {
   id: string;
@@ -48,6 +49,9 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   const [open, setOpen] = useState(false);
   const hasExecutions = (executions: number) => executions > 0;
 
+  console.log(workflow.schemaId);
+  //check smart contract for executions
+
   const DeviceCard: React.FC<{ deviceId: string }> = ({ deviceId }) => {
     // TODO: replace with actual device data
     const mockDeviceData: DeviceData = {
@@ -55,7 +59,6 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
       executions: Math.floor(Math.random() * 10),
       sirnBalance: 0,
     };
-
     return (
       <>
         <div className="bg-gray-50 rounded-lg p-3 space-y-3 transition-all hover:bg-gray-100">
@@ -68,9 +71,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
               size="sm"
               variant="outline"
               className="bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 min-w-[130px]"
-              onClick={() => {
-                /* Add submit record logic */
-              }}
+              onClick={() => setOpen(true)}
             >
               <ActivitySquare className="h-3 w-3 mr-1" />
               Submit Record
@@ -94,7 +95,6 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
                   : "text-gray-400 cursor-not-allowed"
               }`}
               disabled={!hasExecutions(mockDeviceData.executions)}
-              onClick={() => setOpen(true)}
             >
               <Calculator className="h-3 w-3 mr-1" />
               Rewards
@@ -105,13 +105,20 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
           <div className="text-sm text-gray-600 flex items-center justify-end">
             <span className="text-red-600 font-medium">
               {hasExecutions(mockDeviceData.executions)
-                ? "Estimated: " +
-                  formatTokenAmount(mockDeviceData.executions * 0.1)
+                ? "Estimated: "
                 : "No rewards yet"}
             </span>
           </div>
 
-          <NoiseDialog open={open} onOpenChange={setOpen} />
+          {workflow.schemaId == "m-schema-002" ? (
+            <NoiseDialog open={open} onOpenChange={setOpen} />
+          ) : (
+            <TemperatureDialog
+              open={open}
+              onOpenChange={setOpen}
+              deviceId={deviceId}
+            />
+          )}
         </div>
       </>
     );
