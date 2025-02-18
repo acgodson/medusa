@@ -49,7 +49,7 @@ const ExplorerTabHeader = () => {
             className="flex-1 bg-gradient-to-r from-[#e64b4b] to-[#be3b3b] text-white shadow-lg 
                     hover:shadow-xl hover:opacity-90 px-4 py-2 rounded-lg transition-all duration-200
                     text-sm"
-            onClick={() => setIsDialogOpen(true)}
+            disabled={true}
           >
             <Plus className="h-4 w-4 mr-2" />
             Deploy Workflow
@@ -93,7 +93,7 @@ const ExplorerTabHeader = () => {
           <Button
             className="bg-gradient-to-r from-[#E6B24B] to-[#B88A2D] text-white shadow-lg 
                              hover:shadow-xl hover:opacity-90 px-6 py-2 rounded-lg transition-all duration-200"
-            onClick={() => setIsDialogOpen(true)}
+            disabled={true}
           >
             <Plus className="h-4 w-4 mr-2" />
             Deploy Workflow
