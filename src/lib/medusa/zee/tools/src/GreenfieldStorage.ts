@@ -6,6 +6,7 @@ import {
   VisibilityType,
 } from "@bnb-chain/greenfield-js-sdk";
 import { ReedSolomon } from "@bnb-chain/reed-solomon";
+import { customAlphabet } from "nanoid";
 
 type BroadcastOptions = {
   useServerWallet?: boolean;
@@ -18,6 +19,11 @@ type FileData = {
   size: number;
   buffer: Buffer;
 };
+
+const generateSlug = customAlphabet(
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+  6
+);
 
 export class GreenfieldStorage {
   private client: Client;
@@ -128,8 +134,9 @@ export class GreenfieldStorage {
     options?: BroadcastOptions
   ) {
     try {
-      const timestamp = Date.now();
-      const objectName = `data-${timestamp}.json`;
+      const slug = generateSlug();
+
+      const objectName = `siren-${slug}.json`;
 
       const fileData = this.jsonToFileData(data, objectName);
       console.log("Storing data:", data);

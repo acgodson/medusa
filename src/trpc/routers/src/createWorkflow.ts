@@ -15,7 +15,7 @@ export const createWorkflow = baseProcedure
 
       let bodyContent = JSON.stringify({
         operation: "createBucket",
-        workflowId: "7705",
+        workflowId: wid,
       });
 
       let response = await fetch(
@@ -33,7 +33,8 @@ export const createWorkflow = baseProcedure
         throw new Error("Unable to create greenfield bucket for workflow");
       }
 
-      return greenfieldData;
+      console.log(greenfieldData);
+
       const workflowInput = [
         wid,
         input.title,
@@ -55,7 +56,7 @@ export const createWorkflow = baseProcedure
 
       return {
         data: txData,
-        bucketTxn: greenfieldData.data.txHash,
+        bucketTxn: greenfieldData.txHash,
         contractAddress: process.env.REGISTRY_CONTRACT,
       };
     } catch (error: any) {

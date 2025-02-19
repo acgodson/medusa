@@ -13,53 +13,19 @@ type StorageConfig = {
   privy?: PrivyClient;
 };
 
-type NoiseDataPoint = {
-  noise: number;
-  minNoise: number;
-  maxNoise: number;
-  samples: number;
-  accuracy: number;
-  timestamp: number;
-  spikes?: number;
-};
-
-export const createStorageTool = (config: StorageConfig) =>
+export const createTemperatureStorageTool = (config: StorageConfig) =>
   createTool({
     id: "greenfield-storage",
-    description: "Manage general BNB Greenfield storage operations",
+    description: "Manage BNB Greenfield storage operations",
     schema: z.object({
       operation: z.string(),
       workflowId: z.string(),
       walletId: z.string(),
-      data:
-        // Noise data structure with type discriminator
-        z.object({
-          type: z.literal("noise"),
-          deviceId: z.string(),
-          data: z.record(
-            z.string(), // coordinate keys
-            z.object({
-              noise: z.number(),
-              minNoise: z.number(),
-              maxNoise: z.number(),
-              samples: z.number(),
-              accuracy: z.number(),
-              timestamp: z.number(),
-              spikes: z.number(),
-            })
-          ),
-          metadata: z.object({
-            startTime: z.number(),
-            endTime: z.number(),
-            deviceInfo: z
-              .object({
-                manufacturer: z.string().optional(),
-                model: z.string().optional(),
-              })
-              .optional(),
-            totalSamples: z.number(),
-          }),
-        }),
+      data: z.object({
+        temperature: z.number(),
+        humidity: z.number(),
+        timestamp: z.number(),
+      }),
     }),
 
     execute: async (params: any): Promise<string> => {
@@ -87,6 +53,23 @@ export const createStorageTool = (config: StorageConfig) =>
           }
           return Buffer.from(JSON.stringify(data));
         };
+
+        // Detect data type - temperature or noise data
+        const isNoiseData = (data: any) => {
+          // Check for proper noise data structure
+          return (
+            data &&
+            data.data &&
+            data.metadata &&
+            typeof data.data === "object" &&
+            Object.values(data.data).some(
+              (point) => point && typeof point === "object" && "noise" in point
+            )
+          );
+        };
+
+        console.log("actual data?", params.data);
+        console.log("is noise data?", isNoiseData(params.data));
 
         switch (params.operation) {
           case "createBucket": {
@@ -145,6 +128,39 @@ export const createStorageTool = (config: StorageConfig) =>
             }
           }
 
+          case "storeData": {
+            if (!params.data) {
+              throw new Error("data to store not found");
+            }
+
+            const dataToStore = params.data;
+
+            dataToStore.timestamp = Date.now();
+
+            // First, create the object
+            const createResult = await storage.createObject(
+              bucketName,
+              dataToStore,
+              broadcastOptions
+            );
+
+            const uploadResult = await storage.uploadObject(
+              bucketName,
+              createResult.objectName,
+              dataToStore,
+              createResult.txHash
+            );
+
+            return JSON.stringify({
+              success: true,
+              operation: "createAndUploadObject",
+              bucketName,
+              objectName: createResult.objectName,
+              createTxHash: createResult.txHash,
+              uploadResult,
+            });
+          }
+
           // Other operations remain unchanged
           case "getBucketMetadata": {
             try {
@@ -190,6 +206,29 @@ export const createStorageTool = (config: StorageConfig) =>
             } catch (error) {
               throw new Error(`Failed to get object: ${error}`);
             }
+          }
+
+          case "uploadObject": {
+            if (!params.data || !params.objectName || !params.txnHash) {
+              throw new Error(
+                "Data, objectName, and txnHash required for upload operation"
+              );
+            }
+            // Convert data to buffer if it's not already
+            const content = prepareContent(params.data);
+
+            const uploadRes = await storage.uploadObject(
+              bucketName,
+              params.objectName,
+              content,
+              params.txnHash
+            );
+
+            return JSON.stringify({
+              success: true,
+              operation: "uploadObject",
+              result: uploadRes,
+            });
           }
 
           default:

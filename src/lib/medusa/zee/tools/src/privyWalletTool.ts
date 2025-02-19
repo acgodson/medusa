@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTool } from "@covalenthq/ai-agent-sdk";
 import { Hex } from "@privy-io/server-auth";
-import { ServerWallet } from "@/lib/medusa/wallets/server-wallet";
+import { ServerWallet } from "@/lib/medusa/wallets/server-smart-wallet";
 
 export interface PrivyWalletConfig {
   appId: string;
@@ -11,6 +11,10 @@ export interface PrivyWalletConfig {
 
 export const WalletSchema = z.object({
   operation: z.enum(["getAddress", "getWalletId", "sign", "signTxn"]),
+  txData: z.object({
+    data: z.string(),
+    contractAddress: z.string(),
+  }),
   message: z.string(),
 });
 
@@ -57,15 +61,18 @@ export const createPrivyWalletTool = (
               throw new Error("Transaction data required for broadcast");
             }
 
+            const address = activeWallet.address;
+
             const txHash = await serverWallet.executeOperation(
               params.walletId,
+              address as Hex,
               params.txData.contractAddress as Hex,
               params.txData.data as Hex
             );
 
             return JSON.stringify({
               success: true,
-              transactionHash: txHash,
+              tansaction: txHash,
             });
 
           case "getAddress":

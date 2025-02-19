@@ -2,7 +2,7 @@ import { createPublicClient, encodeFunctionData, http } from "viem";
 import { ZeeBaseAgent } from "../base";
 import RegistryArtifacts from "../../../../../../contracts/artifacts/MedusaRegistry.json";
 import { createPrivyWalletTool } from "../../tools/src/privyWalletTool";
-import { ServerWallet } from "../../../wallets/server-wallet";
+import { ServerWallet } from "../../../wallets/server-smart-wallet";
 import { bscTestnet } from "viem/chains";
 import { ModelConfig } from "@covalenthq/ai-agent-sdk";
 
@@ -171,6 +171,7 @@ export class BroadcastingAgent extends ZeeBaseAgent {
       let registrationTxHash;
       let submissionTxHash;
 
+      //TODO: medusa bridge would validate device so no need to register device here, just focus on broadcasting
       if (!isRegistered) {
         console.log("Device not registered, registering now...");
         registrationTxHash = await this.registerDevice(

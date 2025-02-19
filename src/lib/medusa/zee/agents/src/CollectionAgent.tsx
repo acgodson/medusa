@@ -1,6 +1,6 @@
 import { ZeeBaseAgent } from "../base";
 import { createStorageTool, createPrivyWalletTool } from "../../tools";
-import { ServerWallet } from "@/lib/medusa/wallets/server-wallet";
+import { ServerWallet } from "@/lib/medusa/wallets/server-smart-wallet";
 import { ModelConfig } from "@covalenthq/ai-agent-sdk";
 
 type CollectionConfig = {

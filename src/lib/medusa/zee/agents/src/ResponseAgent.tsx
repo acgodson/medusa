@@ -1,6 +1,6 @@
 import { ZeeBaseAgent } from "../base";
 import { createProcessingTool } from "../../tools";
-import { ServerWallet } from "@/lib/medusa/wallets/server-wallet";
+import { ServerWallet } from "@/lib/medusa/wallets/server-smart-wallet";
 import { LLM, ModelConfig } from "@covalenthq/ai-agent-sdk";
 
 type ResponseAgentConfig = {

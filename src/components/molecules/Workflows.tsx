@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ExternalLink,
   Users,
@@ -14,6 +14,9 @@ import { Button, Spinner } from "../atoms";
 import { formatAddress, formatTokenAmount } from "@/utils/helpers";
 import NoiseDialog from "./DialogModals/NoiseDialog";
 import { TemperatureDialog } from "./DialogModals/TemperatureDialog";
+import { createPublicClient, Hex, http } from "viem";
+import { bscTestnet } from "viem/chains";
+import RegistryArtifacts from "../../../contracts/artifacts/MedusaRegistry.json";
 
 interface DeviceData {
   id: string;
@@ -39,6 +42,148 @@ interface WorkflowCardProps {
   isListView?: boolean;
 }
 
+const DeviceCard = ({
+  deviceId,
+  workflowId,
+  schemaId,
+  registryContract,
+  registryAbi,
+}: {
+  deviceId: string;
+  workflowId: number;
+  schemaId: string;
+  registryContract: string;
+  registryAbi: any[];
+}) => {
+  const [deviceData, setDeviceData] = useState({
+    id: deviceId,
+    executions: 0,
+    lastExecuted: 0,
+    isActive: false,
+    loading: true,
+  });
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchDeviceExecutionData = async () => {
+      try {
+        const publicClient = createPublicClient({
+          chain: bscTestnet,
+          transport: http(),
+        });
+
+        const result: any = await publicClient.readContract({
+          address: registryContract as Hex,
+          abi: registryAbi,
+          functionName: "getDeviceExecution",
+          args: [deviceId],
+        });
+        setDeviceData({
+          id: deviceId,
+          executions: Number(result[0]), // count
+          lastExecuted: Number(result[1]), // lastExecuted
+          isActive: result[2], // isActive
+          loading: false,
+        });
+      } catch (error) {
+        console.error("Error fetching device execution data:", error);
+        setDeviceData((prev) => ({
+          ...prev,
+          loading: false,
+        }));
+      }
+    };
+
+    if (deviceId) {
+      fetchDeviceExecutionData();
+    }
+  }, [deviceId, registryContract, registryAbi]);
+
+  const hasExecutions = (executions: any) => executions > 0;
+
+  if (deviceData.loading) {
+    return (
+      <div className="bg-gray-50 rounded-lg p-3 space-y-3 transition-all">
+        <div className="animate-pulse flex flex-col space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="bg-gray-50 rounded-lg p-3 space-y-3 transition-all hover:bg-gray-100">
+        {/* Device ID and Submit Record */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-900 truncate max-w-[240px] sm:max-w-[400px]">
+            {formatAddress(deviceId)}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 min-w-[130px]"
+            onClick={() => setOpen(true)}
+          >
+            <ActivitySquare className="h-3 w-3 mr-1" />
+            Submit Record
+          </Button>
+        </div>
+
+        {/* Executions and Rewards Button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Play className="h-3 w-3 text-red-600" />
+            <span className="text-sm text-gray-600">
+              {deviceData.executions} executions
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className={`bg-white min-w-[130px] ${
+              hasExecutions(deviceData.executions)
+                ? "text-gray-700 hover:bg-red-50 hover:text-red-600"
+                : "text-gray-400 cursor-not-allowed"
+            }`}
+            disabled={!hasExecutions(deviceData.executions)}
+          >
+            <Calculator className="h-3 w-3 mr-1" />
+            Rewards
+          </Button>
+        </div>
+
+        {/* Estimated SIRN Rewards */}
+        <div className="text-sm text-gray-600 flex items-center justify-between">
+          <span
+            className={deviceData.isActive ? "text-green-500" : "text-gray-400"}
+          >
+            {deviceData.isActive ? "Active" : "Inactive"}
+          </span>
+          <span className="text-red-600 font-medium">
+            {hasExecutions(deviceData.executions)
+              ? `Last active: ${new Date(
+                  deviceData.lastExecuted * 1000
+                ).toLocaleDateString()}`
+              : "No rewards yet"}
+          </span>
+        </div>
+
+        {schemaId === "m-schema-002" ? (
+          <NoiseDialog open={open} onOpenChange={setOpen} />
+        ) : (
+          <TemperatureDialog
+            open={open}
+            onOpenChange={setOpen}
+            deviceId={deviceId}
+          />
+        )}
+      </div>
+    </>
+  );
+};
+
 const WorkflowCard: React.FC<WorkflowCardProps> = ({
   workflow,
   handleJoinWorkflow,
@@ -46,83 +191,6 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   isListView = false,
 }) => {
   const [showDevices, setShowDevices] = useState(workflow.isContributor);
-  const [open, setOpen] = useState(false);
-  const hasExecutions = (executions: number) => executions > 0;
-
-  console.log(workflow.schemaId);
-  //check smart contract for executions
-
-  const DeviceCard: React.FC<{ deviceId: string }> = ({ deviceId }) => {
-    // TODO: replace with actual device data
-    const mockDeviceData: DeviceData = {
-      id: deviceId,
-      executions: Math.floor(Math.random() * 10),
-      sirnBalance: 0,
-    };
-    return (
-      <>
-        <div className="bg-gray-50 rounded-lg p-3 space-y-3 transition-all hover:bg-gray-100">
-          {/* Device ID and Submit Record */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-900 truncate max-w-[240px] sm:max-w-[400px]">
-              {formatAddress(deviceId)}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 min-w-[130px]"
-              onClick={() => setOpen(true)}
-            >
-              <ActivitySquare className="h-3 w-3 mr-1" />
-              Submit Record
-            </Button>
-          </div>
-
-          {/* Executions and Rewards Button */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Play className="h-3 w-3 text-red-600" />
-              <span className="text-sm text-gray-600">
-                {mockDeviceData.executions} executions
-              </span>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className={`bg-white min-w-[130px] ${
-                hasExecutions(mockDeviceData.executions)
-                  ? "text-gray-700 hover:bg-red-50 hover:text-red-600"
-                  : "text-gray-400 cursor-not-allowed"
-              }`}
-              disabled={!hasExecutions(mockDeviceData.executions)}
-            >
-              <Calculator className="h-3 w-3 mr-1" />
-              Rewards
-            </Button>
-          </div>
-
-          {/* Estimated SIRN Rewards */}
-          <div className="text-sm text-gray-600 flex items-center justify-end">
-            <span className="text-red-600 font-medium">
-              {hasExecutions(mockDeviceData.executions)
-                ? "Estimated: "
-                : "No rewards yet"}
-            </span>
-          </div>
-
-          {workflow.schemaId == "m-schema-002" ? (
-            <NoiseDialog open={open} onOpenChange={setOpen} />
-          ) : (
-            <TemperatureDialog
-              open={open}
-              onOpenChange={setOpen}
-              deviceId={deviceId}
-            />
-          )}
-        </div>
-      </>
-    );
-  };
 
   return (
     <Card className="overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">
@@ -185,7 +253,16 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
               {showDevices && (
                 <div className="space-y-3">
                   {workflow.deviceIds?.map((deviceId: string) => (
-                    <DeviceCard key={deviceId} deviceId={deviceId} />
+                    <DeviceCard
+                      key={deviceId}
+                      deviceId={deviceId}
+                      workflowId={workflow.id}
+                      schemaId={workflow.schemaId}
+                      registryContract={
+                        process.env.NEXT_PUBLIC_REGISTRY_CONTRACT!
+                      }
+                      registryAbi={RegistryArtifacts.abi}
+                    />
                   ))}
                 </div>
               )}

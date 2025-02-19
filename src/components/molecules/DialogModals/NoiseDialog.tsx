@@ -8,15 +8,22 @@ import {
 import { Button } from "@/components/atoms/button";
 import {
   AlertCircle,
-  Wind,
   Signal,
   MapPin,
   Pause,
   Play,
   XIcon,
+  Upload,
+  Check,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/atoms/alert";
 import { useNoiseTracking } from "@/hooks/siren-noise/useNoiseTracker";
+import { trpc } from "@/trpc/client";
+
+enum WorkflowType {
+  TEMPERATURE = "temperature",
+  NOISE = "noise",
+}
 
 const defaultConfig = {
   // Basic noise settings
@@ -54,15 +61,21 @@ const defaultConfig = {
 const NoiseDialog = ({
   open,
   onOpenChange,
+  deviceId = "xv2hjp0rdjhse42u9huzhbmq", // Default ID or pass from props
+  workflowId = "8954", // Default ID or pass from props
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  deviceId?: string;
+  workflowId?: string;
 }) => {
   const [permissionState, setPermissionState] = useState<
     "prompt" | "granted" | "denied"
   >("prompt");
   const [debugInfo, setDebugInfo] = useState("");
   const [showStats, setShowStats] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const {
     isTracking,
@@ -77,6 +90,19 @@ const NoiseDialog = ({
     stopTracking,
     resumeTracking,
   } = useNoiseTracking(defaultConfig);
+
+  // Connect to tRPC mutation
+  const executeWorkflowMutation = trpc.executeWorkflow.useMutation({
+    onSuccess: () => {
+      setSubmitSuccess(true);
+      setIsSubmitting(false);
+      setDebugInfo("Workflow executed successfully");
+    },
+    onError: (error: any) => {
+      setIsSubmitting(false);
+      setDebugInfo(`Failed to execute workflow: ${error.message}`);
+    },
+  });
 
   const requestPermissions = useCallback(async () => {
     try {
@@ -152,8 +178,9 @@ const NoiseDialog = ({
 
       setDebugInfo("Starting tracking...");
       await startTracking();
-      setDebugInfo(""); // Clear debug info on success
-      setShowStats(false); // Hide stats when starting new session
+      setDebugInfo("");
+      setShowStats(false);
+      setSubmitSuccess(false);
     } catch (err) {
       const errorMessage =
         err instanceof Error
@@ -174,8 +201,92 @@ const NoiseDialog = ({
   const handleStop = useCallback(() => {
     stopTracking();
     setDebugInfo("Tracking stopped");
-    setShowStats(true); // Show stats when stopping
+    setShowStats(true);
   }, [stopTracking]);
+
+  // Format location data for API
+  const formatDataForWorkflow = useCallback(() => {
+    if (!locationData || locationData.length === 0) {
+      return null;
+    }
+
+    const formattedData: Record<string, any> = {};
+    const startTime = locationData[0].timestamp;
+    const endTime = locationData[locationData.length - 1].timestamp;
+    let totalSamples = 0;
+
+    // Format data in the expected structure
+    locationData.forEach((location) => {
+      const key = `${location.lat}|${location.lng}`;
+      formattedData[key] = {
+        noise: location.noise,
+        minNoise: location.minNoise,
+        maxNoise: location.maxNoise,
+        samples: location.samples,
+        accuracy: location.accuracy,
+        timestamp: location.timestamp,
+        spikes: location.spikes || 0,
+      };
+      totalSamples += location.samples;
+    });
+
+    // Get device info from the first location's metadata if available
+    const deviceInfo = locationData[0]?.metadata?.deviceInfo || {
+      manufacturer: navigator.userAgent,
+      model: navigator.platform,
+    };
+
+    return {
+      deviceId,
+      workflowId,
+      workflowType: "noise",
+      data: formattedData,
+      metadata: {
+        startTime,
+        endTime,
+        deviceInfo,
+        totalSamples,
+      },
+    };
+  }, [locationData, deviceId, workflowId]);
+
+  // Execute workflow
+  const handleExecuteWorkflow = useCallback(async () => {
+    const formattedData = formatDataForWorkflow();
+    if (!formattedData) {
+      setDebugInfo("No location data available to submit");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setDebugInfo("Executing workflow...");
+      console.log(formattedData);
+
+      const result = await executeWorkflowMutation.mutateAsync({
+        deviceId: formattedData.deviceId,
+        workflowId: formattedData.workflowId,
+        workflowType: WorkflowType.NOISE,
+        metadata: {
+          totalSamples: formattedData.metadata.totalSamples,
+          startTime: formattedData.metadata.startTime,
+          endTime: formattedData.metadata.endTime,
+          deviceInfo: formattedData.metadata.deviceInfo,
+        },
+        data: formattedData.data,
+      });
+
+      console.log("result after record is submitted", result);
+    } catch (err) {
+      console.error("Failed to execute workflow:", err);
+      setDebugInfo(
+        err instanceof Error
+          ? `Workflow execution error: ${err.message}`
+          : "Failed to execute workflow"
+      );
+      setIsSubmitting(false);
+    }
+  }, [formatDataForWorkflow, executeWorkflowMutation]);
 
   // Stop tracking when dialog closes
   useEffect(() => {
@@ -234,6 +345,10 @@ const NoiseDialog = ({
     return Object.keys(trackingStats.samplesByLocation).length;
   };
 
+  // Determine if we can show the submit button (when tracking stopped and we have data)
+  const canSubmitWorkflow =
+    !isTracking && !isPaused && locationData && locationData.length > 0;
+
   useEffect(() => {
     if (!isTracking) {
       console.log("location data", locationData);
@@ -265,6 +380,8 @@ const NoiseDialog = ({
               ? "Recording paused - please change your location"
               : isTracking
               ? "Recording noise levels..."
+              : submitSuccess
+              ? "Data successfully submitted!"
               : "Ready to start recording"}
           </div>
 
@@ -318,6 +435,20 @@ const NoiseDialog = ({
                   <span className="text-sm text-gray-500 block mt-2">
                     Stationary for{" "}
                     {formatStationaryTime(stationaryInfo.timeAtCurrentLocation)}
+                  </span>
+                </div>
+              ) : isSubmitting ? (
+                <div className="text-center">
+                  <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" />
+                  <span className="text-sm text-gray-500 block mt-2">
+                    Submitting
+                  </span>
+                </div>
+              ) : submitSuccess ? (
+                <div className="text-center">
+                  <Check className="w-12 h-12 text-green-500 mx-auto" />
+                  <span className="text-sm text-gray-500 block mt-2">
+                    Workflow executed
                   </span>
                 </div>
               ) : (
@@ -383,17 +514,41 @@ const NoiseDialog = ({
                   Stop & Reset
                 </Button>
               </>
-            ) : (
+            ) : isTracking ? (
               <Button
-                onClick={isTracking ? handleStop : handleStart}
-                className={`w-full ${
-                  isTracking
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-blue-600 hover:bg-blue-700"
-                } text-white`}
+                onClick={handleStop}
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
                 disabled={permissionState === "denied"}
               >
-                {isTracking ? "Stop Recording" : "Start Recording"}
+                Stop Recording
+              </Button>
+            ) : canSubmitWorkflow ? (
+              <>
+                {!submitSuccess && (
+                  <Button
+                    onClick={handleExecuteWorkflow}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={isSubmitting}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {isSubmitting ? "Submitting..." : "Submit Data"}
+                  </Button>
+                )}
+                <Button
+                  onClick={handleStart}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  disabled={permissionState === "denied" || isSubmitting}
+                >
+                  New Recording
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={handleStart}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={permissionState === "denied"}
+              >
+                Start Recording
               </Button>
             )}
           </div>

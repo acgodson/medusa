@@ -23,7 +23,7 @@ export const formatTokenAmount = (amount: number): string => {
 };
 
 export const validateWorkflowInput = (input: any) => {
-  const errors: any  = {};
+  const errors: any = {};
 
   if (input.title.length > 64) {
     errors.title = "Title must be 64 characters or less for gas efficiency";
@@ -36,3 +36,4 @@ export const validateWorkflowInput = (input: any) => {
 
   return errors;
 };
+

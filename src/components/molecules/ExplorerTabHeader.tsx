@@ -89,14 +89,15 @@ const ExplorerTabHeader = () => {
               <List className="h-4 w-4 text-gray-600" />
             )}
           </Button>
-          {/* <Button
+          <Button
             className="bg-gradient-to-r from-[#E6B24B] to-[#B88A2D] text-white shadow-lg 
                              hover:shadow-xl hover:opacity-90 px-6 py-2 rounded-lg transition-all duration-200"
             disabled={true}
+            onClick={() => setIsDialogOpen(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
             Deploy Workflow
-          </Button> */}
+          </Button>
         </div>
       </div>
 
