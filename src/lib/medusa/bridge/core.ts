@@ -8,7 +8,6 @@ import {
 import { ServerWallet } from "../wallets/server-smart-wallet";
 import { PrivyWalletConfig } from "../zee/tools/src/privyWalletTool";
 import { ModelConfig, ZeeWorkflow } from "@covalenthq/ai-agent-sdk";
-import { metadata } from "@/app/layout";
 
 // Workflow type enum
 export enum WorkflowType {
@@ -306,6 +305,9 @@ export class MedusaBridge {
         children: [],
       };
 
+      const WORKFLOW_TIMEOUT_MS = 40000; // 40 seconds total
+      const AGENT_TIMEOUT_MS = 20000;
+
       // Execute appropriate agents based on workflow type
       let collectionResult, broadcastResult, analysisResult;
       let workflowStates = [];
@@ -408,39 +410,120 @@ export class MedusaBridge {
 
         workflowStates = [collectionState, broadcastState, analysisState];
       } else if (this.workflowType === WorkflowType.NOISE) {
-        // Noise workflow - Execute only collection and broadcasting
         console.log(
           `[${Date.now() - startTime}ms] Starting noise data collection...`
         );
 
-        collectionResult = await this.agents.get("noiseCollection").execute({
-          walletId: params.deviceId,
-          workflowId: params.workflowId,
-          contractAddress: params.contractAddress,
-          metadata: (params.data as NoiseData).data,
-          data: (params.data as NoiseData).data,
-        });
-
-        console.log(collectionResult);
+        try {
+          collectionResult = await Promise.race([
+            this.agents.get("noiseCollection").execute({
+              walletId: params.deviceId,
+              workflowId: params.workflowId,
+              contractAddress: params.contractAddress,
+              metadata: (params.data as NoiseData).data,
+              data: (params.data as NoiseData).data,
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(
+                () => reject(new Error("Collection agent timeout")),
+                AGENT_TIMEOUT_MS
+              )
+            ),
+          ]);
+        } catch (collectionError) {
+          console.error(`Collection failed: ${collectionError}`);
+          return {
+            success: false,
+            workflowType: this.workflowType,
+            error: `Collection failed: ${
+              collectionError instanceof Error
+                ? collectionError.message
+                : String(collectionError)
+            }`,
+            executionTimeMs: Date.now() - startTime,
+            partialExecution: {
+              step: "collection",
+              error:
+                collectionError instanceof Error
+                  ? collectionError.message
+                  : String(collectionError),
+            },
+          };
+        }
 
         if (!collectionResult.success) {
-          throw new Error("Noise data collection failed");
+          throw new Error(
+            `Noise data collection failed: ${
+              collectionResult.error || "Unknown error"
+            }`
+          );
         }
-        console.log(`[${Date.now() - startTime}ms] Collection complete`);
+        console.log(
+          `[${Date.now() - startTime}ms] Collection complete with result:`,
+          collectionResult
+        );
 
         console.log(
           `[${Date.now() - startTime}ms] Starting noise data broadcasting...`
         );
 
-        broadcastResult = await this.agents.get("noiseBroadcasting").execute({
-          walletId: params.deviceId,
-          workflowId: params.workflowId,
-          bucketName: collectionResult.bucketName,
-          objectName: collectionResult.objectName,
-        });
+        try {
+          // Set timeout for broadcasting operation
+          broadcastResult = await Promise.race([
+            this.agents.get("noiseBroadcasting").execute({
+              walletId: params.deviceId,
+              workflowId: params.workflowId,
+              bucketName: collectionResult.bucketName,
+              objectName: collectionResult.objectName,
+              contractAddress: params.contractAddress, // Ensure this is passed
+            }),
+            new Promise<never>((_, reject) =>
+              setTimeout(
+                () => reject(new Error("Broadcasting agent timeout")),
+                AGENT_TIMEOUT_MS
+              )
+            ),
+          ]);
+        } catch (broadcastError) {
+          console.error(
+            `Broadcasting failed but collection succeeded: ${broadcastError}`
+          );
+
+          // Return partial success
+          return {
+            success: false,
+            workflowType: this.workflowType,
+            error: `Broadcasting failed: ${
+              broadcastError instanceof Error
+                ? broadcastError.message
+                : String(broadcastError)
+            }`,
+            executionTimeMs: Date.now() - startTime,
+            partialExecution: {
+              step: "broadcasting",
+              error:
+                broadcastError instanceof Error
+                  ? broadcastError.message
+                  : String(broadcastError),
+              collection: collectionResult, // Return successful collection data
+            },
+          };
+        }
 
         if (!broadcastResult.success) {
-          throw new Error("Noise data broadcasting failed");
+          return {
+            success: false,
+            workflowType: this.workflowType,
+            error: `Noise data broadcasting failed: ${
+              broadcastResult.error || "Unknown error"
+            }`,
+            executionTimeMs: Date.now() - startTime,
+            partialExecution: {
+              collection: collectionResult,
+              broadcastAttempted: true,
+              broadcastError: broadcastResult.error,
+            },
+          };
         }
         console.log(`[${Date.now() - startTime}ms] Broadcasting complete`);
 
@@ -488,10 +571,40 @@ export class MedusaBridge {
       console.log(
         `[${Date.now() - startTime}ms] Executing complete workflow...`
       );
-      const workflowResult = await ZeeWorkflow.run(
-        workflow,
-        workflowState as any
-      );
+      let workflowResult;
+      try {
+        // Set timeout for entire workflow
+        workflowResult = await Promise.race([
+          ZeeWorkflow.run(
+            this.workflows.get(this.workflowType)!,
+            workflowState as any
+          ),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Workflow execution timeout")),
+              WORKFLOW_TIMEOUT_MS
+            )
+          ),
+        ]);
+      } catch (workflowError) {
+        // Return partial success even if final workflow execution fails
+        console.error(
+          `Workflow execution failed but individual steps succeeded: ${workflowError}`
+        );
+        return {
+          success: true, // Consider this successful since individual steps worked
+          executionTimeMs: Date.now() - startTime,
+          workflowType: this.workflowType,
+          workflow: {
+            collection: collectionResult,
+            broadcast: broadcastResult,
+            workflowExecutionError:
+              workflowError instanceof Error
+                ? workflowError.message
+                : String(workflowError),
+          },
+        };
+      }
 
       const executionTime = Date.now() - startTime;
       console.log(`[${executionTime}ms] Workflow execution complete`);
@@ -510,7 +623,6 @@ export class MedusaBridge {
           },
         };
       } else {
-        // For noise workflow, return only collection and broadcast results
         return {
           success: true,
           executionTimeMs: executionTime,

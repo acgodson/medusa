@@ -8,7 +8,7 @@ export const WORKFLOWS_QUERY = gql`
       owner
       schemaId
     }
-    deviceRegistereds(first: 5) {
+    deviceRegistereds(first: 100) { 
       workflowId
       walletId
       deviceAddress

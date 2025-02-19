@@ -250,8 +250,8 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
                     onClick={() => handleJoinWorkflow(workflow.id)}
                   />
                   <h4 className="text-sm font-medium text-gray-900">
-                    Registered Devices ({workflow.deviceIds?.length ?? 0})
-                  </h4>
+                    Registered Agents ({workflow.deviceIds?.length ?? 0})
+                  </h4> 
                 </div>
 
                 <Button

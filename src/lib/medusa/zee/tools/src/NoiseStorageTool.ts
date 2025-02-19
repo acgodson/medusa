@@ -61,14 +61,6 @@ export const createNoiseStorageTool = (config: StorageConfig) =>
 
         const bucketName = `workflow-${params.workflowId}`.toLowerCase();
 
-        const prepareContent = (data: any): Buffer => {
-          if (Buffer.isBuffer(data)) {
-            return data;
-          } else if (typeof data === "string") {
-            return Buffer.from(data, "base64");
-          }
-          return Buffer.from(JSON.stringify(data));
-        };
         switch (params.operation) {
           case "storeData": {
             if (!params.data) {

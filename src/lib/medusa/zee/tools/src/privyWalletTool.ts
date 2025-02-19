@@ -31,7 +31,9 @@ export const createPrivyWalletTool = (
       console.log("Privy tool executing with params:", params);
       const privy = serverWallet.privy;
       try {
-        const activeWallet = await privy.walletApi.getWallet({ id: walletId });
+        const activeWallet = await privy.walletApi.getWallet({
+          id: params.walletId ?? walletId,
+        });
         console.log("Active wallet:", activeWallet);
 
         if (!activeWallet) {
@@ -69,7 +71,7 @@ export const createPrivyWalletTool = (
               params.txData.contractAddress as Hex,
               params.txData.data as Hex
             );
- 
+
             return JSON.stringify({
               success: true,
               tansaction: txHash,
