@@ -1,5 +1,4 @@
-
-export type WorkflowStatus = 'Active' | 'Paused' | 'Archived';
+export type WorkflowStatus = "Active" | "Paused" | "Archived";
 
 export interface Workflow {
   id: number;
@@ -16,16 +15,15 @@ export interface Workflow {
   pages?: number;
 }
 
-
 export interface WorkflowFormData {
-    title: string;
-    description: string;
-    executionInterval: number;
-    schemaId: string;
-  }
-  
-  export interface SubgraphDeviceRegistration {
-    deviceAddress: string;
-    workflowId: string;
-  }
-  
+  title: string;
+  description: string;
+  executionInterval: number;
+  schemaId: string;
+}
+
+export interface SubgraphDeviceRegistration {
+  deviceAddress: string;
+  workflowId: string;
+  walletId: string;
+}

@@ -52,6 +52,10 @@ export const registerDevice = baseProcedure
         process.env.DEVICE_NFT_CONTRACT as `0x${string}`,
         nftData
       );
+
+      
+
+
       return {
         status: "device_created",
         walletId,

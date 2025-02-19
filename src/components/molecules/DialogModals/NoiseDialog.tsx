@@ -61,13 +61,13 @@ const defaultConfig = {
 const NoiseDialog = ({
   open,
   onOpenChange,
-  deviceId = "xv2hjp0rdjhse42u9huzhbmq", // Default ID or pass from props
-  workflowId = "8954", // Default ID or pass from props
+  deviceId,
+  workflowId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  deviceId?: string;
-  workflowId?: string;
+  deviceId: string;
+  workflowId: string;
 }) => {
   const [permissionState, setPermissionState] = useState<
     "prompt" | "granted" | "denied"
@@ -262,6 +262,7 @@ const NoiseDialog = ({
       setIsSubmitting(true);
       setDebugInfo("Executing workflow...");
       console.log(formattedData);
+      console.log(deviceId);
 
       const result = await executeWorkflowMutation.mutateAsync({
         deviceId: formattedData.deviceId,
@@ -275,7 +276,6 @@ const NoiseDialog = ({
         },
         data: formattedData.data,
       });
-
       console.log("result after record is submitted", result);
     } catch (err) {
       console.error("Failed to execute workflow:", err);

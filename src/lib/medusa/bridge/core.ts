@@ -413,7 +413,6 @@ export class MedusaBridge {
           `[${Date.now() - startTime}ms] Starting noise data collection...`
         );
 
-        console.log("this worktype", initialState);
         collectionResult = await this.agents.get("noiseCollection").execute({
           walletId: params.deviceId,
           workflowId: params.workflowId,

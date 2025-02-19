@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Workflow, SubgraphDeviceRegistration } from '../types/workflow';
-import { fetchWorkflowFromContract } from '../utils/contractHelpers';
-import { checkDeviceOwnership } from '../utils/deviceOwnership';
-import { PublicClient } from 'viem';
+import { useState, useEffect } from "react";
+import { Workflow, SubgraphDeviceRegistration } from "../types/workflow";
+import { fetchWorkflowFromContract } from "../utils/contractHelpers";
+import { checkDeviceOwnership } from "../utils/deviceOwnership";
+import { PublicClient } from "viem";
 
 export const useWorkflowProcessor = (
   subgraphData: any,
@@ -32,7 +32,7 @@ export const useWorkflowProcessor = (
                 registryAbi,
                 workflowId
               );
-              
+
               return workflow as Workflow;
             } catch (error) {
               console.error(`Error processing workflow ${workflowId}:`, error);
@@ -58,12 +58,17 @@ export const useWorkflowProcessor = (
   // Update contributor status
   useEffect(() => {
     const updateContributorStatus = async () => {
-      if (!workflows || !connectedWallet?.address || !subgraphData?.deviceRegistereds) return;
+      if (
+        !workflows ||
+        !connectedWallet?.address ||
+        !subgraphData?.deviceRegistereds
+      )
+        return;
 
       try {
-        const registeredDevices : any = new Set(
-          subgraphData.deviceRegistereds.map((reg: SubgraphDeviceRegistration) => 
-            reg.deviceAddress.toLowerCase()
+        const registeredDevices: any = new Set(
+          subgraphData.deviceRegistereds.map(
+            (reg: SubgraphDeviceRegistration) => reg.deviceAddress.toLowerCase()
           )
         );
 
@@ -78,21 +83,27 @@ export const useWorkflowProcessor = (
         const updatedWorkflows = workflows.map((workflow) => {
           const workflowDevices = subgraphData.deviceRegistereds.filter(
             (registration: SubgraphDeviceRegistration) =>
-              Number(registration.workflowId).toString() === workflow.id.toString()
+              Number(registration.workflowId).toString() ===
+              workflow.id.toString()
           );
 
-          const ownedDevices = workflowDevices
-            .filter((registration: SubgraphDeviceRegistration) =>
-              ownershipMap[registration.deviceAddress.toLowerCase()]
+          const ownedDevicesInfo = workflowDevices
+            .filter(
+              (registration: SubgraphDeviceRegistration) =>
+                ownershipMap[registration.deviceAddress.toLowerCase()]
             )
-            .map((registration: SubgraphDeviceRegistration) => 
-              registration.deviceAddress
-            );
+            .map((registration: SubgraphDeviceRegistration) => ({
+              address: registration.deviceAddress,
+              walletId: registration.walletId,
+            }));
 
           return {
             ...workflow,
-            isContributor: ownedDevices.length > 0,
-            deviceIds: ownedDevices,
+            isContributor: ownedDevicesInfo.length > 0,
+            deviceIds: ownedDevicesInfo.map((device: any) => device.address),
+            deviceWalletIds: ownedDevicesInfo.map(
+              (device: any) => device.walletId
+            ),
           };
         });
 
@@ -104,7 +115,12 @@ export const useWorkflowProcessor = (
       }
     };
 
-    if (workflows && connectedWallet?.address && subgraphData.deviceRegistereds.length > 0 && !isChecked) {
+    if (
+      workflows &&
+      connectedWallet?.address &&
+      subgraphData.deviceRegistereds.length > 0 &&
+      !isChecked
+    ) {
       updateContributorStatus();
     }
   }, [

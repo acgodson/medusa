@@ -87,9 +87,7 @@ export class ServerWallet {
     return this.smartAccountPromise;
   }
 
-  async getAddress(walletId: string) {
-
-  }
+  async getAddress(walletId: string) {}
 
   async executeOperation(
     walletId: string,
@@ -101,6 +99,8 @@ export class ServerWallet {
 
     try {
       console.log("Preparing transaction with params:", {
+        walletId: walletId,
+        eoa: address,
         smartAccountAddress: smartAccountClient.account.address,
         contractAddress,
         dataLength: data.length,
@@ -117,11 +117,10 @@ export class ServerWallet {
       console.log(txHash);
 
       // Wait for the transaction to be mined
-      const receipt = await this.publicClient.waitForTransactionReceipt({
-        hash: txHash,
-      });
-
-      console.log("receipt transaction hash", receipt.transactionHash);
+      // const receipt = await this.publicClient.waitForTransactionReceipt({
+      //   hash: txHash,
+      // });
+      // console.log("receipt transaction hash", receipt.transactionHash);
 
       return {
         transactionHash: txHash,

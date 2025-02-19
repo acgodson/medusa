@@ -51,6 +51,8 @@ export function JoinWorkflowDialog({
       setDeviceAddress(data.address);
       setNftTxHash(data.nftTxHash);
 
+      console.log("device address", deviceAddress);
+
       // Automatically proceed to join workflow
       try {
         const result = await joinWorkflow.mutateAsync({

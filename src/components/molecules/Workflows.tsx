@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   ActivitySquare,
+  PlusCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/atoms/card";
 import { Button, Spinner } from "../atoms";
@@ -34,6 +35,7 @@ interface WorkflowCardProps {
     totalExecutions: number;
     isContributor: boolean;
     deviceIds: string[];
+    deviceWalletIds: string[];
     schemaId: string;
     creator: string;
   };
@@ -44,6 +46,7 @@ interface WorkflowCardProps {
 
 const DeviceCard = ({
   deviceId,
+  deviceWalletId,
   workflowId,
   schemaId,
   registryContract,
@@ -54,6 +57,7 @@ const DeviceCard = ({
   schemaId: string;
   registryContract: string;
   registryAbi: any[];
+  deviceWalletId: string;
 }) => {
   const [deviceData, setDeviceData] = useState({
     id: deviceId,
@@ -79,7 +83,7 @@ const DeviceCard = ({
           args: [deviceId],
         });
         setDeviceData({
-          id: deviceId,
+          id: deviceWalletId,
           executions: Number(result[0]), // count
           lastExecuted: Number(result[1]), // lastExecuted
           isActive: result[2], // isActive
@@ -171,7 +175,12 @@ const DeviceCard = ({
         </div>
 
         {schemaId === "m-schema-002" ? (
-          <NoiseDialog open={open} onOpenChange={setOpen} />
+          <NoiseDialog
+            open={open}
+            onOpenChange={setOpen}
+            deviceId={deviceWalletId}
+            workflowId={workflowId.toString()}
+          />
         ) : (
           <TemperatureDialog
             open={open}
@@ -191,6 +200,8 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   isListView = false,
 }) => {
   const [showDevices, setShowDevices] = useState(workflow.isContributor);
+
+  console.log(workflow);
 
   return (
     <Card className="overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">
@@ -233,9 +244,16 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
           {workflow.isContributor ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-gray-900">
-                  Registered Devices ({workflow.deviceIds?.length ?? 0})
-                </h4>
+                <div className="flex items-center space-x-2">
+                  <PlusCircle
+                    className="cursor-pointer"
+                    onClick={() => handleJoinWorkflow(workflow.id)}
+                  />
+                  <h4 className="text-sm font-medium text-gray-900">
+                    Registered Devices ({workflow.deviceIds?.length ?? 0})
+                  </h4>
+                </div>
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -252,18 +270,21 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
 
               {showDevices && (
                 <div className="space-y-3">
-                  {workflow.deviceIds?.map((deviceId: string) => (
-                    <DeviceCard
-                      key={deviceId}
-                      deviceId={deviceId}
-                      workflowId={workflow.id}
-                      schemaId={workflow.schemaId}
-                      registryContract={
-                        process.env.NEXT_PUBLIC_REGISTRY_CONTRACT!
-                      }
-                      registryAbi={RegistryArtifacts.abi}
-                    />
-                  ))}
+                  {workflow.deviceIds?.map(
+                    (deviceId: string, index: number) => (
+                      <DeviceCard
+                        key={deviceId}
+                        deviceId={deviceId}
+                        deviceWalletId={workflow.deviceWalletIds[index]}
+                        workflowId={workflow.id}
+                        schemaId={workflow.schemaId}
+                        registryContract={
+                          process.env.NEXT_PUBLIC_REGISTRY_CONTRACT!
+                        }
+                        registryAbi={RegistryArtifacts.abi}
+                      />
+                    )
+                  )}
                 </div>
               )}
             </div>

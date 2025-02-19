@@ -64,12 +64,12 @@ export const createPrivyWalletTool = (
             const address = activeWallet.address;
 
             const txHash = await serverWallet.executeOperation(
-              params.walletId,
+              activeWallet.id,
               address as Hex,
               params.txData.contractAddress as Hex,
               params.txData.data as Hex
             );
-
+ 
             return JSON.stringify({
               success: true,
               tansaction: txHash,
