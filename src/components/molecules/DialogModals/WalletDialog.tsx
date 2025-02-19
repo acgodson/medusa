@@ -1,3 +1,6 @@
+// This section is unused and outdated
+// TODO: Build privy.io wallet control feature here for users to access their wallets on the platform
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,

@@ -306,7 +306,7 @@ export class MedusaBridge {
       };
 
       const WORKFLOW_TIMEOUT_MS = 40000; // 40 seconds total
-      const AGENT_TIMEOUT_MS = 20000;
+      const AGENT_TIMEOUT_MS = 40000;
 
       // Execute appropriate agents based on workflow type
       let collectionResult, broadcastResult, analysisResult;

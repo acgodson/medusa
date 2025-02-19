@@ -1,3 +1,6 @@
+// This section is unused and outdated.
+// TODO: code refactoring needed
+
 import React from "react";
 import {
   Sheet,

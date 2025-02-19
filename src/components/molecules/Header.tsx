@@ -13,11 +13,10 @@ import { supportedChains } from "@/config/env";
 
 const ExplorerHeader = () => {
   const networks = supportedChains;
-  const [selectedNetwork, setSelectedNetwork] = useState<any>(networks[0]);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { authenticated } = usePrivy();
-  const { handleLogin, handleLogout } = useEthContext();
+  const { handleLogin, handleLogout, switchNetwork, network } = useEthContext();
   const { wallets } = useWallets();
   const connectedWallet = wallets.find((wallet) => wallet.type === "ethereum");
 
@@ -37,7 +36,7 @@ const ExplorerHeader = () => {
           <div className="flex items-center space-x-2">
             <Globe className="h-4 w-4 shrink-0" />
             <span className="font-medium truncate">
-              {selectedNetwork.id === 97 ? "BNB Testnet" : selectedNetwork.name}
+              {network.id === 97 ? "BNB Testnet" : network.name}
             </span>
           </div>
           <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
@@ -50,9 +49,10 @@ const ExplorerHeader = () => {
         {networks.map((network) => (
           <DropdownMenuItem
             key={network.id}
-            onClick={() => setSelectedNetwork(network)}
-            className="text-[#9a2529] hover:text-white hover:bg-[#9a2529]
-                     focus:text-white focus:bg-[#9a2529]"
+            disabled={network.id !== 97}
+            onClick={() => switchNetwork(network as any)}
+            className={`first-line:text-[#9a2529] hover:text-white hover:bg-[#9a2529]
+                     focus:text-white focus:bg-[#9a2529]`}
           >
             {network.id === 97 ? "BNB Testnet" : network.name}
           </DropdownMenuItem>

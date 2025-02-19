@@ -8,7 +8,7 @@ import React, {
 import { ConnectedWallet, usePrivy, useWallets } from "@privy-io/react-auth";
 
 import { createPublicClient, http } from "viem";
-import { baseSepolia } from "viem/chains";
+import { bscTestnet } from "viem/chains";
 
 interface EthContextType {
   network: any;
@@ -24,11 +24,8 @@ const EthContext = createContext<EthContextType | undefined>(undefined);
 export const EthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const { authenticated, login, logout, connectWallet, connectOrCreateWallet } =
-    usePrivy();
-  const { wallets } = useWallets();
-
-  const [network, switchNetwork] = useState<any | null>(baseSepolia);
+  const { authenticated, login, logout } = usePrivy();
+  const [network, switchNetwork] = useState<any | null>(bscTestnet);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
