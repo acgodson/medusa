@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-query";
 import { gql, request } from "graphql-request";
 import { WORKFLOWS_QUERY } from "@/lib/graphql/queries";
+import Footer from "@/components/molecules/footer";
 
 const SUBGRAPH_URL =
   "https://api.studio.thegraph.com/query/61092/medusa/version/latest";
@@ -28,14 +29,15 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* <HydrationBoundary state={dehydrate(queryClient)}> */}
-      {/* <AuroraBackground className="flex flex-col gap-2 relative"> */}
-      <Header />
-      <div className="pt-16">
-        <WorkflowExplorer />
-      </div>
-      {/* </AuroraBackground> */}
-      {/* </HydrationBoundary> */}
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <AuroraBackground className="flex flex-col gap-2 relative">
+          <Header />
+          <div className="pt-16">
+            <WorkflowExplorer />
+          </div>
+          <Footer />
+        </AuroraBackground>
+      </HydrationBoundary>
     </>
   );
 }

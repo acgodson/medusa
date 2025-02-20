@@ -33,7 +33,7 @@ const Schemas = ({
         broadcast: { type: "GreenFieldBSCConnector" },
         response: { type: "NoisePatternReporting" },
       },
-      deployedWorkflows: 1,
+      deployedWorkflows: 2,
     },
   ];
 
@@ -78,7 +78,7 @@ const Schemas = ({
               <div className="flex items-center gap-2 text-sm">
                 <GitBranch className="h-4 w-4 text-[#E6B24B]" />
                 <span className="text-gray-600">
-                  {schema.deployedWorkflows} active workflows
+                  {schema.deployedWorkflows} workflows
                 </span>
               </div>
               <div className="p-3 bg-gray-50/50 rounded-lg space-y-2">
@@ -99,8 +99,8 @@ const Schemas = ({
               <Button
                 variant="outline"
                 className="w-full hover:bg-[#E6B24B]/10"
-                onClick={() => handleDeployWorkflow(schema.id)}
-                disabled={isPending}
+                // onClick={() => handleDeployWorkflow(schema.id)}
+                disabled={true}
               >
                 {isPending ? <Spinner /> : "Deploy Using Schema"}
               </Button>
