@@ -58,6 +58,7 @@ const WorkflowExplorer = () => {
             {sortedWorkflows.length > 0 ? (
               sortedWorkflows.map((workflow: any, i: number) => (
                 <Workflows
+                  showLink={true}
                   key={i}
                   workflow={workflow}
                   handleJoinWorkflow={handleJoinWorkflow}

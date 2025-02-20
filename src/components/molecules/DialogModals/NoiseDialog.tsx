@@ -543,7 +543,7 @@ const NoiseDialog = ({
                 </div>
               ) : isSubmitting ? (
                 <div className="text-center">
-                  <div className="animate-spin w-12 h-12 border-4 border-black border-t-transparent rounded-full mx-auto" />
+                  <div className="animate-spin w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full mx-auto" />
                   <span className="text-sm text-gray-500 block mt-2">
                     Submitting
                   </span>

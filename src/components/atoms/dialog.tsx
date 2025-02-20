@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { cn } from "@/config/env"
+import { cn } from "@/config/env";
 
 interface DialogProps {
   open: boolean;
@@ -15,15 +15,34 @@ export const Dialog: React.FC<DialogProps> = ({
   children,
   persistent = false,
 }) => {
+  // Disable body scroll when dialog is open
+  React.useEffect(() => {
+    if (open) {
+      const scrollY = window.scrollY;
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      document.body.style.overflowY = "scroll";
+
+      return () => {
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        document.body.style.overflowY = "";
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [open]);
+
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/25">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/30 backdrop-blur-sm">
       <div
         className="fixed inset-0"
         onClick={() => !persistent && onOpenChange(false)}
       />
-      <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md mx-4 animate-in fade-in-0 zoom-in-95">
+      <div className="relative bg-white/95 backdrop-blur-md rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] w-full max-w-md mx-4 animate-in fade-in-0 zoom-in-95 border border-white/40">
         {children}
       </div>
     </div>,
@@ -44,8 +63,8 @@ export const DialogContent: React.FC<DialogContentProps> = ({
     <div
       className={cn(
         "max-h-[85vh] overflow-y-auto overscroll-contain",
-        "relative p-6 text-gray-900",
-        "grid gap-4",
+        "relative p-7 text-gray-800",
+        "grid gap-5",
         className
       )}
     >
@@ -67,7 +86,7 @@ export const DialogHeader: React.FC<DialogHeaderProps> = ({
     <div
       className={cn(
         "flex flex-row items-center justify-between",
-        "border-b pb-4 mb-4",
+        "border-b border-gray-100/80 pb-5 mb-5",
         className
       )}
     >
@@ -88,7 +107,7 @@ export const DialogTitle: React.FC<DialogTitleProps> = ({
   return (
     <h2
       className={cn(
-        "text-xl font-semibold text-gray-900",
+        "text-xl font-semibold text-gray-800",
         "flex-1 pr-6", // Space for close button
         className
       )}
@@ -108,7 +127,7 @@ export const DialogFooter: React.FC<DialogFooterProps> = ({
   className,
 }) => {
   return (
-    <div className={cn("mt-6 flex justify-end space-x-2", className)}>
+    <div className={cn("mt-7 flex justify-end space-x-3", className)}>
       {children}
     </div>
   );
@@ -130,10 +149,11 @@ export const DialogClose: React.FC<DialogCloseProps> = ({
       type="button"
       onClick={onClick}
       className={cn(
-        "absolute right-4 top-4",
-        "rounded-full p-1.5",
-        "hover:bg-gray-100 transition-colors",
-        "text-gray-500 hover:text-gray-700",
+        "absolute right-5 top-5",
+        "rounded-full p-2",
+        "hover:bg-gray-100/70 transition-colors duration-200",
+        "text-gray-400 hover:text-gray-600",
+        "flex items-center justify-center",
         className
       )}
     >
@@ -143,7 +163,7 @@ export const DialogClose: React.FC<DialogCloseProps> = ({
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth="2"
+          strokeWidth="1.5"
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
@@ -167,13 +187,16 @@ export const DialogTrigger: React.FC<DialogTriggerProps> = ({
   onClick,
 }) => {
   return (
-    <button type="button" className={cn("", className)} onClick={onClick}>
+    <button
+      type="button"
+      className={cn("transition-all duration-200", className)}
+      onClick={onClick}
+    >
       {children}
     </button>
   );
 };
 
-// Export all components
 export const DialogComponents = {
   Root: Dialog,
   Content: DialogContent,

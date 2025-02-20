@@ -11,7 +11,7 @@ import { Input } from "@/components/atoms/input";
 import { trpc } from "@/trpc/client";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useEthContext } from "@/providers/EthContext";
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, ExternalLink, XIcon } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../../atoms";
 import { Progress } from "@/components/atoms/progress";
 import { useWorkflow } from "@/hooks/useWorkflow";
@@ -138,9 +138,9 @@ export function JoinWorkflowDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-white/95 backdrop-blur-xl border border-white/50 max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="sticky top-0 bg-white/95 backdrop-blur-xl z-10 pb-4">
-          <DialogTitle className="text-xl font-semibold">
+      <DialogContent className="max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="sticky top-0 flex items-start z-10 pb-4">
+          <DialogTitle className="text-xl font-semibold px-1">
             {workflowTitle ? (
               <div className="space-y-1">
                 <div>Join Workflow: {workflowTitle}</div>
@@ -152,6 +152,7 @@ export function JoinWorkflowDialog({
               `Join Workflow #${workflowId}`
             )}
           </DialogTitle>
+          <XIcon cursor={"pointer"} onClick={onClose} />
         </DialogHeader>
 
         <div className="space-y-6">
@@ -212,7 +213,7 @@ export function JoinWorkflowDialog({
                 <Input
                   value={deviceId}
                   readOnly
-                  placeholder="Device identifier would appear here"
+                  placeholder="Identifier would appear here"
                   className="w-full pr-8 font-mono text-sm"
                 />
                 {deviceId && (
@@ -234,7 +235,7 @@ export function JoinWorkflowDialog({
                 <Input
                   value={deviceAddress}
                   readOnly
-                  placeholder="Device wallet address would appear here"
+                  placeholder="Address would appear here"
                   className="w-full pr-8 font-mono text-sm"
                 />
                 {deviceAddress && (

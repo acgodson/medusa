@@ -38,10 +38,12 @@ interface WorkflowCardProps {
     schemaId: string;
     creator: string;
     executionInterval: number;
+
   };
   handleJoinWorkflow: (id: number) => void;
   isPending: boolean;
   isListView?: boolean;
+  showLink?: boolean;
 }
 
 const DeviceCard = ({
@@ -239,6 +241,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   handleJoinWorkflow,
   isPending,
   isListView = true,
+  showLink = true,
 }) => {
   const [showDevices, setShowDevices] = useState(workflow.isContributor);
   const { togglePause, address } = useWorkflow();
@@ -256,8 +259,9 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   };
 
   return (
-
-    <Card className={`overflow-hidden bg-white hover:shadow-md transition-shadow duration-200 ${getOverlayStyles()}`}>
+    <Card
+      className={`overflow-hidden bg-white hover:shadow-md transition-shadow duration-200 ${getOverlayStyles()}`}
+    >
       {(isPaused || isArchived) && (
         <div className="absolute top-2 right-2 z-20 px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-sm">
           {isPaused && (
@@ -290,7 +294,18 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
             <div className="space-y-1">
               <h3 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
                 {workflow.title ?? workflow.bucketName}
-                <ExternalLink className="h-4 w-4 text-red-600 cursor-pointer hover:text-red-700" />
+                {showLink && (
+                  <a
+                    href={`/workflow/${workflow.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open ${
+                      workflow.title ?? workflow.bucketName
+                    } in new tab`}
+                  >
+                    <ExternalLink className="h-4 w-4 text-red-600 cursor-pointer hover:text-red-700" />
+                  </a>
+                )}
               </h3>
               <p className="text-sm text-gray-600">
                 {workflow.description ?? "Basic weather monitoring"}

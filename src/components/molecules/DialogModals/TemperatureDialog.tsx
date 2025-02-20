@@ -88,7 +88,7 @@ export function TemperatureDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange} persistent={true}>
-        <DialogContent className="bg-white/95 backdrop-blur-xl border border-white/50">
+        <DialogContent className="">
           <DialogHeader className="flex justify-between items-center">
             <DialogTitle className="flex items-center">
               <img
