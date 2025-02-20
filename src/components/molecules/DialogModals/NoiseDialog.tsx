@@ -97,6 +97,11 @@ const NoiseDialog = ({
     !propExecutionInterval
   );
 
+  const [txLinks, setTxLinks] = useState<{
+    bscTxHash?: string;
+    greenfieldObjectId?: string;
+  }>({});
+
   const cooldown = useExecutionCooldown(executionInterval, lastExecuted);
 
   const {
@@ -293,7 +298,7 @@ const NoiseDialog = ({
       console.log(formattedData);
       console.log(deviceId);
 
-      const result = await executeWorkflowMutation.mutateAsync({
+      const response: any = await executeWorkflowMutation.mutateAsync({
         deviceId: formattedData.deviceId,
         workflowId: formattedData.workflowId,
         workflowType: WorkflowType.NOISE,
@@ -305,7 +310,17 @@ const NoiseDialog = ({
         },
         data: formattedData.data,
       });
-      console.log("result after record is submitted", result);
+      console.log("result after record is submitted", response);
+      const transactionHash =
+        response.result?.workflow?.broadcast?.transactionHash?.transactionHash;
+
+      const objectName = response.result?.workflow?.collection?.objectName;
+      if (transactionHash) {
+        setTxLinks({
+          bscTxHash: transactionHash,
+          greenfieldObjectId: objectName,
+        });
+      }
     } catch (err) {
       console.error("Failed to execute workflow:", err);
       setDebugInfo(
@@ -436,6 +451,41 @@ const NoiseDialog = ({
               ? "Data successfully submitted!"
               : "Ready to start recording"}
           </div>
+
+          {submitSuccess && txLinks.bscTxHash && (
+            <div className="flex justify-center items-center space-x-4 mt-2">
+              <a
+                href={`https://testnet.bscscan.com/tx/${txLinks.bscTxHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center bg-amber-50 hover:bg-amber-100 rounded-md p-2 transition-all duration-200 border border-amber-200 shadow-sm"
+                title="View on BSC Scan"
+              >
+                <img
+                  src="/bsc-logo.svg"
+                  alt="bsc"
+                  height={30}
+                  width={30}
+                  className="mr-2"
+                />
+              </a>
+              {/* <a
+                href={`https://testnet.bscscan.com/tx/${txLinks.bscTxHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center bg-amber-50 hover:bg-amber-100 rounded-md p-2 transition-all duration-200 border border-amber-200 shadow-sm"
+                title="View on BSC Scan"
+              >
+                <img
+                  src="/greenfield-logo.svg"
+                  alt="greenfield"
+                  height={30}
+                  width={30}
+                  className="mr-2"
+                />
+              </a> */}
+            </div>
+          )}
 
           {!isTracking && !isPaused && <CooldownIndicator />}
 
