@@ -15,11 +15,16 @@ import {
   XIcon,
   Upload,
   Check,
+  Clock,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/atoms/alert";
 import { useNoiseTracking } from "@/hooks/siren-noise/useNoiseTracker";
 import { trpc } from "@/trpc/client";
 import DualSoundBarProgress from "../dual-soundbar-progress";
+import {
+  getCooldownButtonText,
+  useExecutionCooldown,
+} from "@/hooks/useExecutionCooldown";
 
 enum WorkflowType {
   TEMPERATURE = "temperature",
@@ -64,11 +69,15 @@ const NoiseDialog = ({
   onOpenChange,
   deviceId,
   workflowId,
+  executionInterval: propExecutionInterval,
+  lastExecuted: propLastExecuted,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   deviceId: string;
   workflowId: string;
+  executionInterval?: number;
+  lastExecuted?: number;
 }) => {
   const [permissionState, setPermissionState] = useState<
     "prompt" | "granted" | "denied"
@@ -77,6 +86,18 @@ const NoiseDialog = ({
   const [showStats, setShowStats] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const [executionInterval, setExecutionInterval] = useState<number>(
+    propExecutionInterval || 0
+  );
+  const [lastExecuted, setLastExecuted] = useState<number>(
+    propLastExecuted || 0
+  );
+  const [isLoadingWorkflowData, setIsLoadingWorkflowData] = useState<boolean>(
+    !propExecutionInterval
+  );
+
+  const cooldown = useExecutionCooldown(executionInterval, lastExecuted);
 
   const {
     isTracking,
@@ -98,6 +119,7 @@ const NoiseDialog = ({
       setSubmitSuccess(true);
       setIsSubmitting(false);
       setDebugInfo("Workflow executed successfully");
+      setLastExecuted(Math.floor(Date.now() / 1000));
     },
     onError: (error: any) => {
       setIsSubmitting(false);
@@ -172,6 +194,12 @@ const NoiseDialog = ({
   }, []);
 
   const handleStart = useCallback(async () => {
+    if (!cooldown.canExecute) {
+      setDebugInfo(
+        `Please wait ${cooldown.formattedTimeRemaining} before starting a new recording`
+      );
+      return;
+    }
     setDebugInfo("Checking permissions...");
     try {
       const hasPermissions = await requestPermissions();
@@ -350,6 +378,20 @@ const NoiseDialog = ({
   const canSubmitWorkflow =
     !isTracking && !isPaused && locationData && locationData.length > 0;
 
+  const CooldownIndicator = () => {
+    if (cooldown.canExecute || isTracking || isPaused) return null;
+
+    return (
+      <div className="flex items-center justify-center text-amber-600 text-sm py-2 bg-amber-50 rounded-md">
+        <Clock className="w-4 h-4 mr-2" />
+        <span>Cooldown: {cooldown.formattedTimeRemaining}</span>
+        <span className="ml-2 text-xs">
+          ({cooldown.cooldownPercentage.toFixed(0)}%)
+        </span>
+      </div>
+    );
+  };
+
   useEffect(() => {
     if (!isTracking) {
       console.log("location data", locationData);
@@ -360,7 +402,16 @@ const NoiseDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange} persistent={true}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="flex justify-between items-center">
-          <DialogTitle>Noise Measurement</DialogTitle>
+          <DialogTitle className="flex items-center">
+            <img
+              src="/tip-icon.png"
+              alt="siren-icon"
+              height={30}
+              width={30}
+              className="mr-2"
+            />
+            Noise Measurement
+          </DialogTitle>
 
           <XIcon cursor={"pointer"} onClick={() => onOpenChange(false)} />
         </DialogHeader>
@@ -385,6 +436,8 @@ const NoiseDialog = ({
               ? "Data successfully submitted!"
               : "Ready to start recording"}
           </div>
+
+          {!isTracking && !isPaused && <CooldownIndicator />}
 
           {(isTracking || isPaused) && (
             <div className="grid grid-cols-2 gap-4 w-full max-w-md">
@@ -433,12 +486,9 @@ const NoiseDialog = ({
               <img src="/volumebase.svg" alt="base-frame" />
             </div>
 
-
             {/* Dual progress bar would fit here */}
             <div className="absolute inset-0 ml-1.5 pt-2 mt-1 pl-1">
-              <DualSoundBarProgress
-                currentReading={Math.round(currentNoise)}
-              />
+              <DualSoundBarProgress currentReading={Math.round(currentNoise)} />
             </div>
 
             <div
@@ -446,7 +496,6 @@ const NoiseDialog = ({
                 isPaused ? "border-amber-300" : "border-transparent"
               }`}
             />
-
 
             <div className="p-2.5 left-0 top-0 absolute z-1">
               <img src="/meter.svg" alt="meter-frame" />
@@ -463,7 +512,7 @@ const NoiseDialog = ({
                 </div>
               ) : isSubmitting ? (
                 <div className="text-center">
-                  <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto" />
+                  <div className="animate-spin w-12 h-12 border-4 border-black border-t-transparent rounded-full mx-auto" />
                   <span className="text-sm text-gray-500 block mt-2">
                     Submitting
                   </span>
@@ -551,7 +600,7 @@ const NoiseDialog = ({
                 {!submitSuccess && (
                   <Button
                     onClick={handleExecuteWorkflow}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    className="flex-1 bg-gradient-to-r from-[#D82B3C] to-[#17101C] text-white hover:from-[#17101C] hover:to-[#D82B3C]"
                     disabled={isSubmitting}
                   >
                     <Upload className="w-4 h-4 mr-2" />
@@ -561,18 +610,35 @@ const NoiseDialog = ({
                 <Button
                   onClick={handleStart}
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                  disabled={permissionState === "denied" || isSubmitting}
+                  disabled={
+                    permissionState === "denied" ||
+                    isSubmitting ||
+                    !cooldown.canExecute ||
+                    isLoadingWorkflowData
+                  }
                 >
-                  New Recording
+                  {getCooldownButtonText(
+                    "New Recording",
+                    cooldown,
+                    isLoadingWorkflowData
+                  )}
                 </Button>
               </>
             ) : (
               <Button
                 onClick={handleStart}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={permissionState === "denied"}
+                className="flex-1 bg-gradient-to-r from-[#D82B3C] to-[#17101C] text-white hover:from-[#17101C] hover:to-[#D82B3C]"
+                disabled={
+                  permissionState === "denied" ||
+                  !cooldown.canExecute ||
+                  isLoadingWorkflowData
+                }
               >
-                Start Recording
+                {getCooldownButtonText(
+                  "Start Recording",
+                  cooldown,
+                  isLoadingWorkflowData
+                )}
               </Button>
             )}
           </div>

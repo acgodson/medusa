@@ -293,15 +293,15 @@ export const useNoiseTracking = (config: SimpleNoiseConfig) => {
       const added = gpsAddNoiseSample(noiseLevel, noiseMetadataRef.current);
 
       // Log the outcome
-      console.log(
-        `📡 Noise sample ${added ? "added to" : "rejected by"} GPS tracking:`,
-        {
-          noiseLevel: noiseLevel.toFixed(2),
-          hasPosition: !!currentPosition,
-          trackingActive: isActiveRef.current,
-          isStationary: stationaryState.isPaused,
-        }
-      );
+      // console.log(
+      //   `📡 Noise sample ${added ? "added to" : "rejected by"} GPS tracking:`,
+      //   {
+      //     noiseLevel: noiseLevel.toFixed(2),
+      //     hasPosition: !!currentPosition,
+      //     trackingActive: isActiveRef.current,
+      //     isStationary: stationaryState.isPaused,
+      //   }
+      // );
 
       // Local tracking update (separate from GPS system)
       if (currentPosition) {

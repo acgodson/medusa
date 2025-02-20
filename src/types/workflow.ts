@@ -13,6 +13,7 @@ export interface Workflow {
   isContributor: boolean;
   deviceIds: string[];
   pages?: number;
+  executionInterval?: number;
 }
 
 export interface WorkflowFormData {

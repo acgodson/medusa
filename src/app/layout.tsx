@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Medusa",
+  title: "Siren: Introducing Medusa",
   description: "DePIN AI Agents",
 };
 

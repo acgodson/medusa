@@ -22,6 +22,7 @@ import { TemperatureDialog } from "./DialogModals/TemperatureDialog";
 import { createPublicClient, Hex, http } from "viem";
 import { bscTestnet } from "viem/chains";
 import RegistryArtifacts from "../../../contracts/artifacts/MedusaRegistry.json";
+import { getDeviceExecutionInfo } from "@/utils/contractHelpers";
 
 interface DeviceData {
   id: string;
@@ -42,6 +43,7 @@ interface WorkflowCardProps {
     deviceWalletIds: string[];
     schemaId: string;
     creator: string;
+    executionInterval: number;
   };
   handleJoinWorkflow: (id: number) => void;
   isPending: boolean;
@@ -55,6 +57,7 @@ const DeviceCard = ({
   schemaId,
   registryContract,
   registryAbi,
+  executionInterval,
 }: {
   deviceId: string;
   workflowId: number;
@@ -62,6 +65,7 @@ const DeviceCard = ({
   registryContract: string;
   registryAbi: any[];
   deviceWalletId: string;
+  executionInterval?: number;
 }) => {
   const [deviceData, setDeviceData] = useState({
     id: deviceId,
@@ -71,6 +75,8 @@ const DeviceCard = ({
     loading: true,
   });
   const [open, setOpen] = useState(false);
+  const [workflowExecutionInterval, setWorkflowExecutionInterval] =
+    useState<number>(executionInterval || 0);
 
   useEffect(() => {
     const fetchDeviceExecutionData = async () => {
@@ -80,17 +86,34 @@ const DeviceCard = ({
           transport: http(),
         });
 
-        const result: any = await publicClient.readContract({
-          address: registryContract as Hex,
-          abi: registryAbi,
-          functionName: "getDeviceExecution",
-          args: [deviceId],
-        });
+        const result: any = await getDeviceExecutionInfo(
+          publicClient,
+          registryContract as Hex,
+          registryAbi,
+          deviceId
+        );
+        // If execution interval wasn't passed from parent, fetch it now
+        if (!executionInterval) {
+          try {
+            const [workflowData] = (await publicClient.readContract({
+              address: registryContract as Hex,
+              abi: registryAbi,
+              functionName: "getDetailedWorkflow",
+              args: [workflowId],
+            })) as any;
+            setWorkflowExecutionInterval(
+              Number(workflowData.executionInterval)
+            );
+          } catch (error) {
+            console.error("Error fetching workflow execution interval:", error);
+          }
+        }
+
         setDeviceData({
           id: deviceWalletId,
-          executions: Number(result[0]), // count
-          lastExecuted: Number(result[1]), // lastExecuted
-          isActive: result[2], // isActive
+          executions: result.count,
+          lastExecuted: result.lastExecuted,
+          isActive: result.isActive,
           loading: false,
         });
       } catch (error) {
@@ -105,7 +128,7 @@ const DeviceCard = ({
     if (deviceId) {
       fetchDeviceExecutionData();
     }
-  }, [deviceId, registryContract, registryAbi]);
+  }, [deviceId, registryContract, registryAbi, executionInterval]);
 
   const hasExecutions = (executions: any) => executions > 0;
 
@@ -183,6 +206,8 @@ const DeviceCard = ({
             onOpenChange={setOpen}
             deviceId={deviceWalletId}
             workflowId={workflowId.toString()}
+            executionInterval={workflowExecutionInterval}
+            lastExecuted={deviceData.lastExecuted}
           />
         ) : (
           <TemperatureDialog
@@ -237,7 +262,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
             </div>
             <div className="flex items-center gap-1">
               <Play className="h-4 w-4 text-red-600" />
-              <span>{workflow.totalExecutions}</span>
+              {/* <span>{workflow.totalExecutions}</span> */}
             </div>
           </div>
         </div>
@@ -285,6 +310,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
                           process.env.NEXT_PUBLIC_REGISTRY_CONTRACT!
                         }
                         registryAbi={RegistryArtifacts.abi}
+                        executionInterval={workflow.executionInterval}
                       />
                     )
                   )}
