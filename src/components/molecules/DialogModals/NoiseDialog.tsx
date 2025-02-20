@@ -410,7 +410,7 @@ const NoiseDialog = ({
               width={30}
               className="mr-2"
             />
-            Noise Measurement
+            Noise
           </DialogTitle>
 
           <XIcon cursor={"pointer"} onClick={() => onOpenChange(false)} />
@@ -506,8 +506,8 @@ const NoiseDialog = ({
                 <div className="text-center">
                   <Pause className="w-12 h-12 text-amber-500 mx-auto" />
                   <span className="text-sm text-gray-500 block mt-2">
-                    Stationary for{" "}
-                    {formatStationaryTime(stationaryInfo.timeAtCurrentLocation)}
+                    Stationary
+                    {/* {formatStationaryTime(stationaryInfo.timeAtCurrentLocation)} */}
                   </span>
                 </div>
               ) : isSubmitting ? (
@@ -542,7 +542,7 @@ const NoiseDialog = ({
                 <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
                 <AlertDescription className="text-sm">
                   {stationaryInfo.pauseReason ||
-                    "Device has been stationary too long. Please move to a new location."}
+                    "Device has stayed near the same location for a while"}
                 </AlertDescription>
               </div>
             </Alert>
@@ -600,7 +600,7 @@ const NoiseDialog = ({
                 {!submitSuccess && (
                   <Button
                     onClick={handleExecuteWorkflow}
-                    className="flex-1 bg-gradient-to-r from-[#D82B3C] to-[#17101C] text-white hover:from-[#17101C] hover:to-[#D82B3C]"
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                     disabled={isSubmitting}
                   >
                     <Upload className="w-4 h-4 mr-2" />
@@ -609,7 +609,7 @@ const NoiseDialog = ({
                 )}
                 <Button
                   onClick={handleStart}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 bg-gradient-to-r from-[#D82B3C] to-[#17101C] text-white hover:from-[#17101C] hover:to-[#D82B3C]"
                   disabled={
                     permissionState === "denied" ||
                     isSubmitting ||

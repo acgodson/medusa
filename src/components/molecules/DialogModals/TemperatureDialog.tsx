@@ -90,8 +90,15 @@ export function TemperatureDialog({
       <Dialog open={open} onOpenChange={onOpenChange} persistent={true}>
         <DialogContent className="bg-white/95 backdrop-blur-xl border border-white/50">
           <DialogHeader className="flex justify-between items-center">
-            <DialogTitle className="text-xl font-semibol ">
-              Submit Temperature Record
+            <DialogTitle className="flex items-center">
+              <img
+                src="/tip-icon.png"
+                alt="siren-icon"
+                height={30}
+                width={30}
+                className="mr-2"
+              />
+              Temperature
             </DialogTitle>
             <XIcon cursor={"pointer"} onClick={() => onOpenChange(false)} />
           </DialogHeader>
@@ -117,7 +124,7 @@ export function TemperatureDialog({
                   type="number"
                   value={temperature}
                   onChange={(e) => setTemperature(e.target.value)}
-                  placeholder="Enter temperature"
+                  placeholder="temperature"
                   className="w-full"
                   step="0.1"
                   disabled={executeWorkflow.isPending}
@@ -132,7 +139,7 @@ export function TemperatureDialog({
                   type="number"
                   value={humidity}
                   onChange={(e) => setHumidity(e.target.value)}
-                  placeholder="Enter humidity"
+                  placeholder="humidity"
                   className="w-full"
                   min="0"
                   max="100"
@@ -146,7 +153,7 @@ export function TemperatureDialog({
               <Button
                 onClick={handleSubmit}
                 disabled={true}
-                className="w-full bg-black text-white hover:bg-black/80"
+                className="flex-1 bg-gradient-to-r from-[#D82B3C] to-[#17101C] text-white hover:from-[#17101C] hover:to-[#D82B3C]"
               >
                 {executeWorkflow.isPending ? (
                   <div className="flex items-center justify-center gap-2">
@@ -154,7 +161,7 @@ export function TemperatureDialog({
                     Processing Workflow...
                   </div>
                 ) : (
-                  "Submit Record"
+                  "Fetch Record"
                 )}
               </Button>
             </div>
