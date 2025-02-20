@@ -25,6 +25,7 @@ import {
   getCooldownButtonText,
   useExecutionCooldown,
 } from "@/hooks/useExecutionCooldown";
+import { useWorkflow } from "@/hooks/useWorkflow";
 
 enum WorkflowType {
   TEMPERATURE = "temperature",
@@ -117,6 +118,7 @@ const NoiseDialog = ({
     stopTracking,
     resumeTracking,
   } = useNoiseTracking(defaultConfig);
+  const { refreshData } = useWorkflow();
 
   // Connect to tRPC mutation
   const executeWorkflowMutation = trpc.executeWorkflow.useMutation({
@@ -125,6 +127,8 @@ const NoiseDialog = ({
       setIsSubmitting(false);
       setDebugInfo("Workflow executed successfully");
       setLastExecuted(Math.floor(Date.now() / 1000));
+      // trigger refresh
+      refreshData();
     },
     onError: (error: any) => {
       setIsSubmitting(false);

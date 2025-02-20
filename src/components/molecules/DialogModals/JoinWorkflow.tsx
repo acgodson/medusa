@@ -14,6 +14,7 @@ import { useEthContext } from "@/providers/EthContext";
 import { Copy, ExternalLink } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../../atoms";
 import { Progress } from "@/components/atoms/progress";
+import { useWorkflow } from "@/hooks/useWorkflow";
 
 interface JoinWorkflowDialogProps {
   workflowId: number;
@@ -40,8 +41,10 @@ export function JoinWorkflowDialog({
   >("idle");
   const [error, setError] = useState<string | null>(null);
 
+  const { refreshData } = useWorkflow();
+
   const { handleLogin, isLoggingIn } = useEthContext();
-  const { authenticated, sendTransaction, signTransaction } = usePrivy();
+  const { authenticated } = usePrivy();
   const { wallets } = useWallets();
   const connectedWallet = wallets.find((wallet) => wallet.type === "ethereum");
 
@@ -62,6 +65,7 @@ export function JoinWorkflowDialog({
         });
         setRegistryTxHash(result.registryTxHash);
         setStatus("completed");
+        refreshData();
       } catch (err: any) {
         setError(err.message);
         setStatus("idle");
@@ -202,7 +206,7 @@ export function JoinWorkflowDialog({
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm text-gray-600 block">
-                Device/Sensor ID
+                Device/Agent ID
               </label>
               <div className="relative">
                 <Input
@@ -224,7 +228,7 @@ export function JoinWorkflowDialog({
 
             <div className="space-y-2">
               <label className="text-sm text-gray-600 block">
-                Device Wallet
+                Agent Wallet
               </label>
               <div className="relative">
                 <Input

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Workflow,
   SubgraphDeviceRegistration,
@@ -15,10 +15,19 @@ export const useWorkflowProcessor = (
   registryAddress: string,
   registryAbi: any,
   nftContractAddress: string,
-  nftContractAbi: any
+  nftContractAbi: any,
+  refreshTrigger: number = 0
 ) => {
   const [workflows, setWorkflows] = useState<Workflow[] | null>(null);
   const [isChecked, setIsChecked] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
+
+  const refreshWorkflows = useCallback(() => {
+    setWorkflows(null);
+    setIsChecked(false);
+    setRefreshCount(prev => prev + 1);
+  }, []);
+
 
   // Process initial workflow data
   useEffect(() => {
@@ -57,7 +66,7 @@ export const useWorkflowProcessor = (
     if (subgraphData && !workflows) {
       processWorkflows();
     }
-  }, [subgraphData, publicClient, workflows, registryAddress, registryAbi]);
+  }, [subgraphData, publicClient, workflows, registryAddress, registryAbi, refreshCount, refreshTrigger]);
 
   // Update contributor status
   useEffect(() => {
@@ -135,7 +144,57 @@ export const useWorkflowProcessor = (
     publicClient,
     nftContractAddress,
     nftContractAbi,
+    refreshCount,
   ]);
 
-  return { workflows, isChecked };
+  // Live workflow status tracking effect
+  useEffect(() => {
+    // Skip if no workflows
+    if (!workflows || workflows.length === 0) return;
+    
+    // Immediately check workflow statuses
+    const checkWorkflowStatuses = async () => {
+      try {
+        const updatedWorkflows = await Promise.all(
+          workflows.map(async (workflow) => {
+            // Fetch current paused status
+            const [_, isArchived, isPaused] = (await publicClient.readContract({
+              address: registryAddress as `0x${string}`,
+              abi: registryAbi,
+              functionName: "getDetailedWorkflow",
+              args: [BigInt(workflow.id)],
+            })) as any;
+
+            const status: WorkflowStatus = isArchived
+              ? "Archived"
+              : isPaused
+              ? "Paused"
+              : "Active";
+
+            // Only update if status changed
+            if (workflow.status !== status) {
+              return { ...workflow, status };
+            }
+            return workflow;
+          })
+        );
+        // Only update state if there are changes
+        const hasChanges = updatedWorkflows.some(
+          (updated, index) => updated.status !== workflows[index].status
+        );
+        
+        if (hasChanges) {
+          setWorkflows(updatedWorkflows);
+        }
+      } catch (error) {
+        console.error("Error checking workflow statuses:", error);
+      }
+    }; 
+    // Run status check immediately and then on interval
+    checkWorkflowStatuses();  
+    const statusInterval = setInterval(checkWorkflowStatuses, 10000);
+    return () => clearInterval(statusInterval);
+  }, [workflows, publicClient, registryAddress, registryAbi]);
+
+  return { workflows, isChecked, refreshWorkflows };
 };

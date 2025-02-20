@@ -1,4 +1,3 @@
-import AuroraBackground from "@/components/atoms/aurora-background";
 import React from "react";
 import WorkflowExplorer from "@/components/organisms/WorkflowExplorer";
 import Header from "@/components/molecules/Header";
@@ -7,7 +6,7 @@ import {
   HydrationBoundary,
   QueryClient,
 } from "@tanstack/react-query";
-import { gql, request } from "graphql-request";
+import { request } from "graphql-request";
 import { WORKFLOWS_QUERY } from "@/lib/graphql/queries";
 import Footer from "@/components/molecules/footer";
 
@@ -17,7 +16,6 @@ const SUBGRAPH_URL =
 export default async function HomePage() {
   const queryClient = new QueryClient();
 
-  // Prefetch both data and workflows
   await Promise.all([
     queryClient.prefetchQuery({
       queryKey: ["data"],
@@ -30,13 +28,11 @@ export default async function HomePage() {
   return (
     <>
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <AuroraBackground className="flex flex-col gap-2 relative">
-          <Header />
-          <div className="pt-16">
-            <WorkflowExplorer />
-          </div>
-          <Footer />
-        </AuroraBackground>
+        <Header />
+        <div className="pt-16">
+          <WorkflowExplorer />
+        </div>
+        <Footer />
       </HydrationBoundary>
     </>
   );

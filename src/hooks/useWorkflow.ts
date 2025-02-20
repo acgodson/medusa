@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { createPublicClient, encodeFunctionData, http } from "viem";
 import { bscTestnet } from "viem/chains";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { request } from "graphql-request";
 import { trpc } from "@/trpc/client";
 import { WORKFLOWS_QUERY } from "@/lib/graphql/queries";
@@ -15,6 +16,8 @@ export const useWorkflow = () => {
   const { ready: isPrivyReady } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();
   const connectedWallet = wallets.find((wallet) => wallet.type === "ethereum");
+  const queryClient = useQueryClient();
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const publicClient = createPublicClient({
     chain: bscTestnet,
@@ -22,7 +25,11 @@ export const useWorkflow = () => {
   });
 
   // Query subgraph data
-  const { data: subgraphData, isLoading } = useQuery({
+  const {
+    data: subgraphData,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["workflows"],
     queryFn: async () => {
       const data = await request(SUBGRAPH_URL, WORKFLOWS_QUERY);
@@ -32,14 +39,15 @@ export const useWorkflow = () => {
   });
 
   // Process workflows
-  const { workflows, isChecked } = useWorkflowProcessor(
+  const { workflows, isChecked, refreshWorkflows } = useWorkflowProcessor(
     subgraphData,
     publicClient,
     connectedWallet,
     process.env.NEXT_PUBLIC_REGISTRY_CONTRACT!,
     RegistryArtifacts.abi,
     process.env.NEXT_PUBLIC_DEVICE_NFT_CONTRACT!,
-    DeviceNFTArtifacts.abi
+    DeviceNFTArtifacts.abi,
+    refreshCounter
   );
 
   // Create workflow mutation
@@ -47,6 +55,16 @@ export const useWorkflow = () => {
     onSuccess: (data) => console.log("workflow created:", data),
     onError: (error) => console.error("Creation failed:", error),
   });
+
+  const refreshData = async () => {
+    setRefreshCounter((prev) => prev + 1);
+    await queryClient.invalidateQueries({ queryKey: ["workflows"] });
+    await refetch();
+    if (refreshWorkflows) {
+      refreshWorkflows();
+    }
+    return true;
+  };
 
   const handleSubmit = async (formData: WorkflowFormData) => {
     try {
@@ -76,6 +94,8 @@ export const useWorkflow = () => {
           method: "eth_sendTransaction",
           params: [transactionRequest],
         });
+
+        await refreshData();
 
         return hash;
       }
@@ -117,6 +137,9 @@ export const useWorkflow = () => {
       method: "eth_sendTransaction",
       params: [transactionRequest],
     });
+
+    setTimeout(() => refreshData(), 2000);
+
     return hash;
   };
 
@@ -128,5 +151,6 @@ export const useWorkflow = () => {
     togglePause,
     handleSubmit,
     isPending: createWorkflow.isPending,
+    refreshData,
   };
 };
