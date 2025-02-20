@@ -17,9 +17,7 @@ const WorkflowExplorer = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<number>(0);
 
-  const { workflows, isLoading, handleSubmit, isPending, createWorkflow } =
-    useWorkflow();
-    
+  const { workflows, handleSubmit, createWorkflow } = useWorkflow();
 
   const handleDeployWorkflow = () => {};
 

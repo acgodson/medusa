@@ -12,10 +12,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/atoms/card";
 import { Button, Spinner } from "../atoms";
-import {
-  formatAddress,
-  formatTimeAgo,
-} from "@/utils/helpers";
+import { formatAddress, formatTimeAgo } from "@/utils/helpers";
 import NoiseDialog from "./DialogModals/NoiseDialog";
 import { TemperatureDialog } from "./DialogModals/TemperatureDialog";
 import { createPublicClient, Hex, http } from "viem";
@@ -227,7 +224,6 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   isListView = true,
 }) => {
   const [showDevices, setShowDevices] = useState(workflow.isContributor);
-  console.log(workflow);
 
   return (
     <Card className="overflow-hidden bg-white hover:shadow-md transition-shadow duration-200">
