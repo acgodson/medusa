@@ -90,8 +90,7 @@ const ExplorerTabHeader = () => {
             )}
           </Button>
           <Button
-            className="bg-gradient-to-r from-[#E6B24B] to-[#B88A2D] text-white shadow-lg 
-                             hover:shadow-xl hover:opacity-90 px-6 py-2 rounded-lg transition-all duration-200"
+                className="bg-gradient-to-r from-[#D82B3C] to-[#17101C] text-white hover:from-[#17101C] hover:to-[#D82B3C]"
             disabled={true}
             onClick={() => setIsDialogOpen(true)}
           >

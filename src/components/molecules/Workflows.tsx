@@ -15,7 +15,6 @@ import { Button, Spinner } from "../atoms";
 import {
   formatAddress,
   formatTimeAgo,
-  formatTokenAmount,
 } from "@/utils/helpers";
 import NoiseDialog from "./DialogModals/NoiseDialog";
 import { TemperatureDialog } from "./DialogModals/TemperatureDialog";
@@ -193,7 +192,7 @@ const DeviceCard = ({
           >
             {deviceData.isActive ? "Active" : "Inactive"}
           </span>
-          <span className="text-red-600 font-medium">
+          <span className="text-red-600 text-xs  font-medium">
             {hasExecutions(deviceData.executions)
               ? `Last active: ${formatTimeAgo(deviceData.lastExecuted)}`
               : "No rewards yet"}
@@ -228,7 +227,6 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   isListView = true,
 }) => {
   const [showDevices, setShowDevices] = useState(workflow.isContributor);
-
   console.log(workflow);
 
   return (
