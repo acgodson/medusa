@@ -388,7 +388,7 @@ export const useNoiseTracking = (config: SimpleNoiseConfig) => {
           timeAtLocation / 1000
         )}s`
       );
-      pauseTracking("Device has been stationary for too long");
+      pauseTracking("Device has been stationary for a while");
       return;
     }
 

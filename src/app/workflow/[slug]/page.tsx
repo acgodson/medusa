@@ -68,18 +68,18 @@ export async function generateMetadata({
     // Generate dynamic metadata based on workflow details
     return {
       title: `${title} - Siren`,
-      description: `A Medusa workflow with schema ${schemaId}, ${executionCount} executions, ${status} since ${createdDate}`,
+      description: `A Medusa workflow, ${executionCount} executions, ${status} since ${createdDate}`,
       openGraph: {
         type: "website",
         url: `https://sirenwatch.xyz/workflow/${slug}`,
         title: `${title} - Siren`,
-        description: `A Medusa workflow with schema ${schemaId}, ${executionCount} executions, ${status} since ${createdDate}`,
+        description: `A Medusa workflow with schema, ${executionCount} executions, ${status} since ${createdDate}`,
         images: openGraphImage.images,
       },
       twitter: {
         card: "summary_large_image",
         title: `${title} - Sirenwatch`,
-        description: `A Medusa workflow with schema ${schemaId}, ${executionCount} executions, ${status} since ${createdDate}`,
+        description: `A Medusa workflow with schema, ${executionCount} executions, ${status} since ${createdDate}`,
         images: [openGraphImage.images[0].url],
       },
     };
