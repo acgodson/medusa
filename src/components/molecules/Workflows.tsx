@@ -12,7 +12,11 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/atoms/card";
 import { Button, Spinner } from "../atoms";
-import { formatAddress, formatTokenAmount } from "@/utils/helpers";
+import {
+  formatAddress,
+  formatTimeAgo,
+  formatTokenAmount,
+} from "@/utils/helpers";
 import NoiseDialog from "./DialogModals/NoiseDialog";
 import { TemperatureDialog } from "./DialogModals/TemperatureDialog";
 import { createPublicClient, Hex, http } from "viem";
@@ -116,6 +120,7 @@ const DeviceCard = ({
       </div>
     );
   }
+
   return (
     <>
       <div className="bg-gray-50 rounded-lg p-3 space-y-3 transition-all hover:bg-gray-100">
@@ -167,9 +172,7 @@ const DeviceCard = ({
           </span>
           <span className="text-red-600 font-medium">
             {hasExecutions(deviceData.executions)
-              ? `Last active: ${new Date(
-                  deviceData.lastExecuted * 1000
-                ).toLocaleDateString()}`
+              ? `Last active: ${formatTimeAgo(deviceData.lastExecuted)}`
               : "No rewards yet"}
           </span>
         </div>
@@ -197,7 +200,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   workflow,
   handleJoinWorkflow,
   isPending,
-  isListView = false,
+  isListView = true,
 }) => {
   const [showDevices, setShowDevices] = useState(workflow.isContributor);
 
@@ -251,7 +254,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
                   />
                   <h4 className="text-sm font-medium text-gray-900">
                     Registered Agents ({workflow.deviceIds?.length ?? 0})
-                  </h4> 
+                  </h4>
                 </div>
 
                 <Button

@@ -13,7 +13,7 @@ import WorkflowLayout from "../templates/workflowLayout";
 
 const WorkflowExplorer = () => {
   const { withAuth } = useAuthenticatedAction();
-  const [viewMode, setViewMode] = useState("grid");
+  const [viewMode, setViewMode] = useState("list");
   const [isOpen, setIsOpen] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<number>(0);
 

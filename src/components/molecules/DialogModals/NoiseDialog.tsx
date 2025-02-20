@@ -19,6 +19,7 @@ import {
 import { Alert, AlertDescription } from "@/components/atoms/alert";
 import { useNoiseTracking } from "@/hooks/siren-noise/useNoiseTracker";
 import { trpc } from "@/trpc/client";
+import DualSoundBarProgress from "../dual-soundbar-progress";
 
 enum WorkflowType {
   TEMPERATURE = "temperature",
@@ -423,12 +424,35 @@ const NoiseDialog = ({
           {/* Circular Gauge */}
           <div className="relative w-48 h-48">
             <div
-              className={`absolute inset-0 rounded-full border-4 ${
-                isPaused ? "border-amber-300" : "border-gray-200"
+              className={`m-2.5 absolute inset-0 rounded-full border-[12px] 
+              border-[#a6b4cc]
               }`}
             />
 
-            <div className="absolute inset-2 rounded-full bg-white flex items-center justify-center">
+            <div className="p-2.5 mt-[0.3px] left-0 top-0 absolute z-1">
+              <img src="/volumebase.svg" alt="base-frame" />
+            </div>
+
+
+            {/* Dual progress bar would fit here */}
+            <div className="absolute inset-0 ml-1.5 pt-2 mt-1 pl-1">
+              <DualSoundBarProgress
+                currentReading={Math.round(currentNoise)}
+              />
+            </div>
+
+            <div
+              className={`m-2.5 absolute inset-0 rounded-full border-[12px] ${
+                isPaused ? "border-amber-300" : "border-transparent"
+              }`}
+            />
+
+
+            <div className="p-2.5 left-0 top-0 absolute z-1">
+              <img src="/meter.svg" alt="meter-frame" />
+            </div>
+
+            <div className="absolute inset-2 rounded-full bg-transparent flex items-center justify-center">
               {isPaused ? (
                 <div className="text-center">
                   <Pause className="w-12 h-12 text-amber-500 mx-auto" />
