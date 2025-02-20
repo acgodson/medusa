@@ -442,7 +442,7 @@ const NoiseDialog = ({
         )}
 
         <div className="text-center text-sm space-y-2">
-          <div className="text-gray-600">
+          <div className="text-gray-600 flex flex-row justify-center items-start space-x-3">
             {isPaused
               ? "Recording paused - please change your location"
               : isTracking
@@ -450,42 +450,19 @@ const NoiseDialog = ({
               : submitSuccess
               ? "Data successfully submitted!"
               : "Ready to start recording"}
-          </div>
 
-          {submitSuccess && txLinks.bscTxHash && (
-            <div className="flex justify-center items-center space-x-4 mt-2">
+            {submitSuccess && txLinks.bscTxHash && (
               <a
                 href={`https://testnet.bscscan.com/tx/${txLinks.bscTxHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center bg-amber-50 hover:bg-amber-100 rounded-md p-2 transition-all duration-200 border border-amber-200 shadow-sm"
+                className=" bg-amber-50 hover:bg-amber-100 px-0.5 ml-1 flex flex-row justify-center rounded-md transition-all duration-200 border border-amber-200 shadow-sm"
                 title="View on BSC Scan"
               >
-                <img
-                  src="/bsc-logo.svg"
-                  alt="bsc"
-                  height={30}
-                  width={30}
-                  className="mr-2"
-                />
+                <img src="/bsc-logo.svg" alt="bsc" height={20} width={20} />
               </a>
-              {/* <a
-                href={`https://testnet.bscscan.com/tx/${txLinks.bscTxHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center bg-amber-50 hover:bg-amber-100 rounded-md p-2 transition-all duration-200 border border-amber-200 shadow-sm"
-                title="View on BSC Scan"
-              >
-                <img
-                  src="/greenfield-logo.svg"
-                  alt="greenfield"
-                  height={30}
-                  width={30}
-                  className="mr-2"
-                />
-              </a> */}
-            </div>
-          )}
+            )}
+          </div>
 
           {!isTracking && !isPaused && <CooldownIndicator />}
 
