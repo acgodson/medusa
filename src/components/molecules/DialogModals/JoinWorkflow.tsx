@@ -87,7 +87,7 @@ export function JoinWorkflowDialog({
 
   const handleSubmit = async () => {
     if (!connectedWallet) {
-      console.log("no connected wallet");
+      console.log("wallet is not ready or connected");
       return;
     }
     if (status === "completed") {
@@ -95,7 +95,14 @@ export function JoinWorkflowDialog({
       return;
     }
     setError(null);
+    await handleRequest();
+  };
 
+  const handleRequest = async () => {
+    if (!connectedWallet) {
+      console.log("wallet is not ready or connected");
+      return;
+    }
     // If we have device details but no registry tx, try joining workflow directly
     if (deviceId && deviceAddress && !registryTxHash) {
       setStatus("joining_workflow");
@@ -113,7 +120,6 @@ export function JoinWorkflowDialog({
       }
       return;
     }
-
     setStatus("creating_device");
     try {
       await registerDevice.mutateAsync({
@@ -255,7 +261,7 @@ export function JoinWorkflowDialog({
                 className={`w-full ${
                   deviceId && deviceAddress && !registryTxHash
                     ? "bg-zinc-800 hover:bg-zinc-900"
-                    : "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-gradient-to-r from-[#D82B3C] to-[#17101C] text-white hover:from-[#17101C] hover:to-[#D82B3C]"
                 } text-white`}
               >
                 {deviceId && deviceAddress && !registryTxHash

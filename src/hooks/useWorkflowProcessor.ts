@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { Workflow, SubgraphDeviceRegistration } from "../types/workflow";
+import {
+  Workflow,
+  SubgraphDeviceRegistration,
+  WorkflowStatus,
+} from "../types/workflow";
 import { fetchWorkflowFromContract } from "../utils/contractHelpers";
 import { checkDeviceOwnership } from "../utils/deviceOwnership";
 import { PublicClient } from "viem";

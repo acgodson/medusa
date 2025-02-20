@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Tabs, TabsContent } from "@/components/atoms/tabs";
 import { Button } from "@/components/atoms/button";
 import { useAuthenticatedAction } from "@/hooks/useAuth";
@@ -16,14 +16,25 @@ const WorkflowExplorer = () => {
   const [viewMode, setViewMode] = useState("list");
   const [isOpen, setIsOpen] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<number>(0);
-
   const { workflows, handleSubmit, createWorkflow } = useWorkflow();
+
+  const sortedWorkflows = useMemo(() => {
+    if (!workflows) return [];
+    return [...workflows].sort((a, b) => {
+      // Active workflows at the top
+      if (a.status === "Active" && b.status !== "Active") return -1;
+      if (a.status !== "Active" && b.status === "Active") return 1;
+      return b.timestamp - a.timestamp;
+    });
+  }, [workflows]);
 
   const handleDeployWorkflow = () => {};
 
   const handleJoinWorkflow = (workflowId: number) => {
-    setSelectedWorkflow(workflowId);
-    setIsOpen(true);
+    withAuth(() => {
+      setSelectedWorkflow(workflowId);
+      setIsOpen(true);
+    });
   };
 
   const selectedWorkflowData = workflows?.find(
@@ -44,8 +55,8 @@ const WorkflowExplorer = () => {
                 : "grid-cols-1"
             } gap-4 md:gap-6`}
           >
-            {workflows && workflows.length > 0 ? (
-              workflows.map((workflow: any, i: number) => (
+            {sortedWorkflows.length > 0 ? (
+              sortedWorkflows.map((workflow: any, i: number) => (
                 <Workflows
                   key={i}
                   workflow={workflow}
