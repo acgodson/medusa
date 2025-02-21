@@ -19,6 +19,10 @@ export const privyConfig = {
     accentColor: "#676FFF",
     logo: `${process.env.NEXT_PUBLIC_URL!}/black-logo.png`,
   },
+  embeddedWallets: {
+    createOnLogin: "all-users",
+    noPromptOnSignature: false,
+  },
   walletConnectCloudProjectId: "957c795c4c86e7c46609c0cd4064fa00",
 };
 
