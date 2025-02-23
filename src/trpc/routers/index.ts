@@ -1,4 +1,3 @@
-import { customAlphabet } from "nanoid";
 import { createTRPCRouter } from "../init";
 import { registerDevice } from "./src/registerDevice";
 import { createWorkflow } from "./src/createWorkflow";
@@ -7,10 +6,10 @@ import { getServerWallet } from "./src/getServerWallet";
 import { greenfield } from "./src/greenfield";
 import { getWorkflow } from "./src/getWorkflow";
 import { joinWorkflow } from "./src/joinWorkflow";
-import { exchangeToken } from "./src/admin/exchangeToken";
-import { getToken } from "./src/admin/getToken";
-import { initiateAuth } from "./src/admin/init";
-import { sendEmail } from "./src/admin/sendEmail";
+// import { exchangeToken } from "./src/admin/exchangeToken";
+// import { getToken } from "./src/admin/getToken";
+// import { initiateAuth } from "./src/admin/init";
+// import { sendEmail } from "./src/admin/sendEmail";
 
 export const appRouter = createTRPCRouter({
   createWorkflow,
@@ -21,12 +20,10 @@ export const appRouter = createTRPCRouter({
   greenfield,
   getWorkflow,
   // mailing functions
-  initiateAuth,
-  exchangeToken,
-  getToken,
-  sendEmail
-
-
+  // initiateAuth,
+  // exchangeToken,
+  // getToken,
+  // sendEmail
 });
 
 export type AppRouter = typeof appRouter;
