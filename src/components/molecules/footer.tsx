@@ -6,6 +6,12 @@ export default function Footer() {
           <div className="flex flex-col items-center">
             {/* Links section - at top on mobile */}
             <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center mb-8 md:mb-0">
+              {/* <a
+                href="https://sirenwatch.xyz"
+                className="text-gray-700 hover:text-gray-900 text-xs"
+              >
+                Siren
+              </a> */}
               <a
                 href="https://discord.com"
                 className="text-gray-700 hover:text-gray-900 text-xs"
@@ -38,8 +44,7 @@ export default function Footer() {
               <div className="text-center md:text-left order-2 md:order-1 mt-8 md:mt-0">
                 <p className="text-gray-700 text-xs">
                   Built on{" "}
-                  <span className="text-zinc-900 text-xs">BnB Greenfield</span>{" "}
-                  and{" "}
+                  <span className="text-zinc-900 text-xs">Greenfield</span> and{" "}
                   <span className="text-zinc-900 text-xs">
                     Binance Smart Chain
                   </span>

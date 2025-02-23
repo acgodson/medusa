@@ -44,15 +44,6 @@ const ExplorerTabHeader = () => {
               <List className="h-4 w-4 text-gray-600" />
             )}
           </Button>
-          {/* <Button
-            className="flex-1 bg-gradient-to-r from-[#e64b4b] to-[#be3b3b] text-white shadow-lg 
-                    hover:shadow-xl hover:opacity-90 px-4 py-2 rounded-lg transition-all duration-200
-                    text-sm"
-            disabled={true}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Deploy Workflow
-          </Button> */}
         </div>
       </div>
 
@@ -71,7 +62,7 @@ const ExplorerTabHeader = () => {
             className="px-6 py-2 data-[state=active]:bg-[#0d0a04] data-[state=active]:text-white
                            data-[state=active]:shadow-md rounded-lg transition-all duration-200"
           >
-            Available Schemas
+            Schemas
           </TabsTrigger>
         </TabsList>
 
@@ -90,7 +81,7 @@ const ExplorerTabHeader = () => {
             )}
           </Button>
           <Button
-                className="bg-gradient-to-r from-[#D82B3C] to-[#17101C] text-white hover:from-[#17101C] hover:to-[#D82B3C]"
+            className="bg-gradient-to-r from-[#D82B3C] to-[#17101C] text-white hover:from-[#17101C] hover:to-[#D82B3C]"
             disabled={true}
             onClick={() => setIsDialogOpen(true)}
           >

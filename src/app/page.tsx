@@ -9,9 +9,9 @@ import {
 import { request } from "graphql-request";
 import { WORKFLOWS_QUERY } from "@/lib/graphql/queries";
 import Footer from "@/components/molecules/footer";
+import { SUBGRAPH_URL } from "@/config/constants";
 
-const SUBGRAPH_URL =
-  "https://api.studio.thegraph.com/query/61092/medusa/version/latest";
+
 
 export default async function HomePage() {
   const queryClient = new QueryClient();

@@ -15,6 +15,9 @@ import WorkflowCard from "../molecules/Workflows";
 import { fetchWorkflowFromContract } from "@/utils/contractHelpers";
 import { checkDeviceOwnership } from "@/utils/deviceOwnership";
 import request from "graphql-request";
+import LeaderboardCard from "../molecules/LeaderboardCard";
+import HelpfulHints from "../molecules/HelpfulHints";
+import VersionBanner from "../molecules/version-banner";
 
 export default function WorkflowView({ params }: { params: { slug: string } }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -160,33 +163,49 @@ export default function WorkflowView({ params }: { params: { slug: string } }) {
   return (
     <>
       <Header />
-      <div className="pt-16">
-        <WorkflowLayout>
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">Workflow Details</h1>
-            {/* <p className="text-gray-600">View and manage this workflow</p> */}
-          </div>
+      <VersionBanner />
 
-          {singleWorkflow && (
-            <>
-              <WorkflowCard
-                workflow={singleWorkflow}
-                handleJoinWorkflow={handleJoinWorkflow}
-                isPending={createWorkflow.isPending}
-                isListView={true}
-                showLink={false}
-              />
+      <WorkflowLayout>
+        {/* <div className="mb-6">
+            <h1 className="text-2xl font-bold">Workflow</h1>
+          </div> */}
 
-              <JoinWorkflowDialog
-                workflowId={singleWorkflow.id}
-                workflowTitle={singleWorkflow.title}
-                open={isOpen}
-                onClose={() => setIsOpen(false)}
-              />
-            </>
-          )}
-        </WorkflowLayout>
-      </div>
+        {singleWorkflow && (
+          <>
+            {/* Helpful Hints Section */}
+            <HelpfulHints />
+
+            {/* Responsive grid container */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Workflow card takes up 2/3 of space on desktop */}
+              <div className="lg:col-span-2">
+                <WorkflowCard
+                  workflow={singleWorkflow}
+                  handleJoinWorkflow={handleJoinWorkflow}
+                  isPending={createWorkflow.isPending}
+                  isListView={true}
+                  showLink={false}
+                />
+              </div>
+
+              {/* Leaderboard takes up 1/3 of space on desktop */}
+              <div className="lg:col-span-1">
+                <LeaderboardCard
+                  workflowId={singleWorkflow.id}
+                  ownedDevices={singleWorkflow.deviceIds}
+                />
+              </div>
+            </div>
+
+            <JoinWorkflowDialog
+              workflowId={singleWorkflow.id}
+              workflowTitle={singleWorkflow.title}
+              open={isOpen}
+              onClose={() => setIsOpen(false)}
+            />
+          </>
+        )}
+      </WorkflowLayout>
       <Footer />
     </>
   );

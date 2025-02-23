@@ -38,7 +38,6 @@ interface WorkflowCardProps {
     schemaId: string;
     creator: string;
     executionInterval: number;
-
   };
   handleJoinWorkflow: (id: number) => void;
   isPending: boolean;
@@ -248,6 +247,15 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
   const isPaused = workflow.status === "Paused";
   const isArchived = workflow.status === "Archived";
 
+  useEffect(() => {
+    console.log("Workflow data:", {
+      id: workflow.id,
+      deviceIds: workflow.deviceIds,
+      isContributor: workflow.isContributor,
+      deviceWalletIds: workflow.deviceWalletIds,
+    });
+  }, [workflow]);
+
   const getOverlayStyles = () => {
     if (isPaused) {
       return "after:absolute after:inset-0 after:bg-gray-200 after:bg-opacity-30 after:z-10 relative";
@@ -260,7 +268,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
 
   return (
     <Card
-      className={`overflow-hidden bg-white hover:shadow-md transition-shadow duration-200 ${getOverlayStyles()}`}
+      className={`overflow-hidden bg-white duration-200 ${getOverlayStyles()}`}
     >
       {(isPaused || isArchived) && (
         <div className="absolute top-2 right-2 z-20 px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-sm">
@@ -355,7 +363,7 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Tooltip
+                  {/* <Tooltip
                     content={
                       isPaused
                         ? "Cannot add agents while workflow is paused"
@@ -376,9 +384,9 @@ const WorkflowCard: React.FC<WorkflowCardProps> = ({
                         }
                       />
                     </div>
-                  </Tooltip>
+                  </Tooltip> */}
                   <h4 className="text-sm font-medium text-gray-900">
-                    My Agents ({workflow.deviceIds?.length ?? 0})
+                    My Agent ({workflow.deviceIds?.length ?? 0})
                   </h4>
                 </div>
 

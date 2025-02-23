@@ -12,6 +12,8 @@ import { useWorkflowProcessor } from "./useWorkflowProcessor";
 import RegistryArtifacts from "../../contracts/artifacts/MedusaRegistry.json";
 import DeviceNFTArtifacts from "../../contracts/artifacts/DeviceNFT.json";
 
+
+
 export const useWorkflow = () => {
   const { ready: isPrivyReady } = usePrivy();
   const { wallets, ready: walletsReady } = useWallets();

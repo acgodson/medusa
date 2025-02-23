@@ -55,3 +55,5 @@ index.html
 subgraph/
 /subgraph/
 contracts/DeviceNFT_flattened.sol
+src/trpc/routers/src/admin/config.ts
+src/trpc/routers/src/admin

@@ -23,7 +23,7 @@ export const privyConfig = {
     createOnLogin: "all-users",
     noPromptOnSignature: false,
   },
-  walletConnectCloudProjectId: "957c795c4c86e7c46609c0cd4064fa00",
+  // walletConnectCloudProjectId: "957c795c4c86e7c46609c0cd4064fa00",
 };
 
 export const supportedChains = [bscTestnet, bsc];

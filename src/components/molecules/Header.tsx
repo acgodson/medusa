@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useEthContext } from "@/providers/EthContext";
 import { ChevronDown, LogOut, Globe, Menu, X } from "lucide-react";
@@ -10,6 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/atoms/dropdown-menu";
 import { supportedChains } from "@/config/env";
+import { trpc } from "@/trpc/client";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Button } from "../atoms";
 
 const ExplorerHeader = () => {
   const networks = supportedChains;
@@ -24,6 +27,41 @@ const ExplorerHeader = () => {
     if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
+  const { replace, push } = useRouter();
+
+  // const searchParams = useSearchParams();
+  // const pathname = usePathname();
+
+  // const authCode = searchParams.get("code");
+  // const { data: authUrl, refetch } = trpc.initiateAuth.useQuery(undefined, {
+  //   enabled: false,
+  // });
+  // const exchangeToken = trpc.exchangeToken.useMutation();
+
+  // const handleZohoAuthCallBack = useCallback(async () => {
+  //   if (!authCode || !authCode.length) {
+  //     return;
+  //   }
+  //   await exchangeToken.mutateAsync({
+  //     code: authCode,
+  //   });
+  //   const params = new URLSearchParams(searchParams);
+  //   params.delete("code");
+  //   params.delete("location");
+  //   params.delete("accounts-server");
+  //   replace(`${pathname}?${params.toString()}`);
+  // }, [authCode, searchParams, pathname, replace]);
+
+  // useEffect(() => {
+  //   handleZohoAuthCallBack();
+  // }, [handleZohoAuthCallBack]);
+
+  // const handleZohoAuth = useCallback(async () => {
+  //   await refetch();
+  //   if (authUrl && authUrl.authorizationUrl) {
+  //     window.location.href = authUrl.authorizationUrl;
+  //   }
+  // }, [refetch, authUrl]);
 
   const NetworkSelector = () => (
     <DropdownMenu>
@@ -104,8 +142,11 @@ const ExplorerHeader = () => {
 
   return (
     <>
-      <div className="flex fixed z-50 items-center w-full justify-between px-6 py-4 bg-white/50 backdrop-blur-lg border-b border-gray-800">
-        <div className="flex items-center space-x-3">
+      <div className="flex fixed z-50 items-center w-full justify-between px-6 py-4 bg-white/85 backdrop-blur-lg border-b border-gray-800">
+        <div
+          className="flex items-center space-x-3 cursor-pointer"
+          onClick={() => push("/")}
+        >
           <img src="/black-logo.png" alt="Medusa Logo" className="h-8 w-8" />
           {/* <h1 className="text-2xl font-bold text-black bg-clip-text">
             DePIN Agents

@@ -25,9 +25,8 @@ export const useWorkflowProcessor = (
   const refreshWorkflows = useCallback(() => {
     setWorkflows(null);
     setIsChecked(false);
-    setRefreshCount(prev => prev + 1);
+    setRefreshCount((prev) => prev + 1);
   }, []);
-
 
   // Process initial workflow data
   useEffect(() => {
@@ -66,7 +65,15 @@ export const useWorkflowProcessor = (
     if (subgraphData && !workflows) {
       processWorkflows();
     }
-  }, [subgraphData, publicClient, workflows, registryAddress, registryAbi, refreshCount, refreshTrigger]);
+  }, [
+    subgraphData,
+    publicClient,
+    workflows,
+    registryAddress,
+    registryAbi,
+    refreshCount,
+    refreshTrigger,
+  ]);
 
   // Update contributor status
   useEffect(() => {
@@ -85,6 +92,8 @@ export const useWorkflowProcessor = (
           )
         );
 
+        // console.log("registered devices", registeredDevices);
+
         const ownershipMap = await checkDeviceOwnership(
           publicClient,
           nftContractAddress,
@@ -92,6 +101,8 @@ export const useWorkflowProcessor = (
           registeredDevices,
           connectedWallet.address
         );
+
+        // console.log("ownership map", ownershipMap);
 
         const updatedWorkflows = workflows.map((workflow) => {
           const workflowDevices = subgraphData.deviceRegistereds.filter(
@@ -119,7 +130,7 @@ export const useWorkflowProcessor = (
             ),
           };
         });
-
+        // console.log("ownership info", updatedWorkflows);
         setWorkflows(updatedWorkflows);
         setIsChecked(true);
       } catch (error) {
@@ -151,7 +162,7 @@ export const useWorkflowProcessor = (
   useEffect(() => {
     // Skip if no workflows
     if (!workflows || workflows.length === 0) return;
-    
+
     // Immediately check workflow statuses
     const checkWorkflowStatuses = async () => {
       try {
@@ -182,16 +193,16 @@ export const useWorkflowProcessor = (
         const hasChanges = updatedWorkflows.some(
           (updated, index) => updated.status !== workflows[index].status
         );
-        
+
         if (hasChanges) {
           setWorkflows(updatedWorkflows);
         }
       } catch (error) {
         console.error("Error checking workflow statuses:", error);
       }
-    }; 
+    };
     // Run status check immediately and then on interval
-    checkWorkflowStatuses();  
+    checkWorkflowStatuses();
     const statusInterval = setInterval(checkWorkflowStatuses, 10000);
     return () => clearInterval(statusInterval);
   }, [workflows, publicClient, registryAddress, registryAbi]);

@@ -79,7 +79,7 @@ export async function generateMetadata({
       twitter: {
         card: "summary_large_image",
         title: `${title} - Sirenwatch`,
-        description: `A Medusa workflow with schema, ${executionCount} executions, ${status} since ${createdDate}`,
+        description: `A Medusa workflow with ${executionCount} executions since ${createdDate}`,
         images: [openGraphImage.images[0].url],
       },
     };

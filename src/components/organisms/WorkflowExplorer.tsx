@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { Tabs, TabsContent } from "@/components/atoms/tabs";
-import { Button } from "@/components/atoms/button";
 import { useAuthenticatedAction } from "@/hooks/useAuth";
 import { JoinWorkflowDialog } from "../molecules/DialogModals/JoinWorkflow";
 import ExplorerSkeleton from "../molecules/ExplorerSkeleton";
@@ -21,7 +20,6 @@ const WorkflowExplorer = () => {
   const sortedWorkflows = useMemo(() => {
     if (!workflows) return [];
     return [...workflows].sort((a, b) => {
-      // Active workflows at the top
       if (a.status === "Active" && b.status !== "Active") return -1;
       if (a.status !== "Active" && b.status === "Active") return 1;
       return b.timestamp - a.timestamp;
