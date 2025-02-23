@@ -73,13 +73,13 @@ export async function generateMetadata({
         type: "website",
         url: `https://sirenwatch.xyz/workflow/${slug}`,
         title: `${title} - Siren`,
-        description: `A Medusa workflow with schema, ${executionCount} executions, ${status} since ${createdDate}`,
+        description: `${executionCount} Executions since ${createdDate}`,
         images: openGraphImage.images,
       },
       twitter: {
         card: "summary_large_image",
         title: `${title} - Sirenwatch`,
-        description: `A Medusa workflow with ${executionCount} executions since ${createdDate}`,
+        description: `${executionCount} Executions since ${createdDate}`,
         images: [openGraphImage.images[0].url],
       },
     };
